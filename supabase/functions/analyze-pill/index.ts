@@ -9,6 +9,9 @@ const corsHeaders = {
 
 interface PillAnalysisResult {
   name: string;
+  genericName: string;
+  brandName: string;
+  drugClass: string;
   confidence: number;
   description: string;
   color: string;
@@ -61,13 +64,16 @@ serve(async (req) => {
 
 IMPORTANT: You must respond with ONLY a valid JSON object in this exact format, no markdown or additional text:
 {
-  "name": "Generic name (Brand name)",
+  "name": "Full Pill Name with Dosage (e.g., Prasugrel 10 MG)",
+  "genericName": "Generic pharmaceutical name",
+  "brandName": "Brand/Trade name",
+  "drugClass": "Drug classification (e.g., Antiplatelet Agents, Analgesics, etc.)",
   "confidence": 0.85,
   "description": "Brief description of the medication",
   "color": "Color of the pill",
   "shape": "Shape of the pill (round, oval, capsule, etc.)",
   "imprint": "Any visible text, numbers, or symbols on the pill",
-  "usage": "Common medical uses for this medication",
+  "usage": "Detailed common medical uses for this medication including what conditions it treats",
   "warnings": ["Warning 1", "Warning 2"]
 }
 
@@ -129,6 +135,9 @@ If you cannot identify the pill with confidence, still provide your best analysi
       // Provide a fallback result
       result = {
         name: "Unknown Pill",
+        genericName: "Unknown",
+        brandName: "Unknown",
+        drugClass: "Unknown",
         confidence: 0.3,
         description: "Unable to identify this pill with certainty. Please consult a pharmacist.",
         color: "Unknown",

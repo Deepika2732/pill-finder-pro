@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from "react";
-import { Upload, Camera, X, Loader2, Pill, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Upload, Camera, X, Loader2, Pill, AlertCircle, CheckCircle2, Info, Stethoscope, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,6 +7,9 @@ import { useToast } from "@/hooks/use-toast";
 
 interface DetectionResult {
   name: string;
+  genericName: string;
+  brandName: string;
+  drugClass: string;
   confidence: number;
   description: string;
   color: string;
@@ -231,49 +234,45 @@ export default function Detection() {
 
                 {result && (
                   <div className="space-y-4 animate-fade-in">
-                    <div className="flex items-start gap-4 p-4 rounded-xl bg-primary/5 border border-primary/20">
-                      <CheckCircle2 className="w-6 h-6 text-primary flex-shrink-0 mt-1" />
-                      <div>
-                        <h3 className="text-xl font-display font-bold">{result.name}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Confidence: {(result.confidence * 100).toFixed(1)}%
-                        </p>
+                    {/* Confidence Badge */}
+                    <div className="flex items-center justify-between">
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        result.confidence >= 0.8 
+                          ? "bg-green-500/20 text-green-600" 
+                          : result.confidence >= 0.5 
+                            ? "bg-yellow-500/20 text-yellow-600" 
+                            : "bg-red-500/20 text-red-600"
+                      }`}>
+                        {(result.confidence * 100).toFixed(0)}% Confidence
+                      </span>
+                      <CheckCircle2 className="w-5 h-5 text-primary" />
+                    </div>
+
+                    {/* Basic Properties Grid */}
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="p-2 rounded-lg bg-muted/50 text-center">
+                        <p className="text-xs text-muted-foreground">Color</p>
+                        <p className="font-medium text-sm">{result.color}</p>
+                      </div>
+                      <div className="p-2 rounded-lg bg-muted/50 text-center">
+                        <p className="text-xs text-muted-foreground">Shape</p>
+                        <p className="font-medium text-sm">{result.shape}</p>
+                      </div>
+                      <div className="p-2 rounded-lg bg-muted/50 text-center">
+                        <p className="text-xs text-muted-foreground">Imprint</p>
+                        <p className="font-medium text-sm truncate">{result.imprint || "N/A"}</p>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="p-3 rounded-lg bg-muted/50">
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Color</p>
-                        <p className="font-medium">{result.color}</p>
-                      </div>
-                      <div className="p-3 rounded-lg bg-muted/50">
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Shape</p>
-                        <p className="font-medium">{result.shape}</p>
-                      </div>
-                      <div className="p-3 rounded-lg bg-muted/50 col-span-2">
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Imprint</p>
-                        <p className="font-medium">{result.imprint || "None visible"}</p>
-                      </div>
-                    </div>
-
-                    <div className="p-4 rounded-lg bg-muted/30">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Description</p>
-                      <p className="text-sm">{result.description}</p>
-                    </div>
-
-                    <div className="p-4 rounded-lg bg-muted/30">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Common Usage</p>
-                      <p className="text-sm">{result.usage}</p>
-                    </div>
-
+                    {/* Warnings */}
                     {result.warnings.length > 0 && (
-                      <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20">
-                        <p className="text-xs text-destructive uppercase tracking-wide mb-2 flex items-center gap-1">
+                      <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+                        <p className="text-xs text-destructive uppercase tracking-wide mb-1 flex items-center gap-1">
                           <AlertCircle className="w-3 h-3" />
                           Warnings
                         </p>
-                        <ul className="text-sm space-y-1">
-                          {result.warnings.map((warning, i) => (
+                        <ul className="text-xs space-y-0.5">
+                          {result.warnings.slice(0, 2).map((warning, i) => (
                             <li key={i}>• {warning}</li>
                           ))}
                         </ul>
@@ -284,6 +283,114 @@ export default function Detection() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Detailed Result Card - Reference Image Style */}
+          {result && selectedImage && (
+            <Card className="mt-8 glass-card overflow-hidden animate-fade-in">
+              <div className="bg-gradient-to-r from-primary/10 to-primary/5 border-b border-primary/20 px-6 py-3">
+                <p className="text-xs text-primary uppercase tracking-widest font-medium">
+                  Detection and Identification of Pills
+                </p>
+                <h2 className="text-xl font-display font-bold text-foreground">Result</h2>
+              </div>
+              
+              <CardContent className="p-6">
+                <div className="flex flex-col md:flex-row gap-6">
+                  {/* Pill Image */}
+                  <div className="flex-shrink-0">
+                    <div className="w-48 h-48 md:w-56 md:h-56 mx-auto rounded-2xl overflow-hidden bg-muted border-2 border-primary/20 shadow-lg">
+                      <img
+                        src={selectedImage}
+                        alt="Detected pill"
+                        className="w-full h-full object-contain p-2"
+                      />
+                    </div>
+                    <div className="text-center mt-4">
+                      <h3 className="text-2xl font-display font-bold text-primary">{result.name}</h3>
+                    </div>
+                  </div>
+
+                  {/* Pill Details */}
+                  <div className="flex-1 space-y-4">
+                    {/* Info Card */}
+                    <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                          <Stethoscope className="w-5 h-5 text-primary" />
+                        </div>
+                        <div className="space-y-2 text-sm">
+                          <p>
+                            <span className="font-semibold text-primary">Drug Class:</span>{" "}
+                            <span className="text-foreground">{result.drugClass || "N/A"}</span>
+                          </p>
+                          <p>
+                            <span className="font-semibold text-primary">Generic Name:</span>{" "}
+                            <span className="text-foreground">{result.genericName || "N/A"}</span>
+                          </p>
+                          <p>
+                            <span className="font-semibold text-primary">Brand Name:</span>{" "}
+                            <span className="text-foreground">{result.brandName || "N/A"}</span>
+                          </p>
+                          <p>
+                            <span className="font-semibold text-primary">Pill Name:</span>{" "}
+                            <span className="text-foreground">{result.name}</span>
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Usage Card */}
+                    <div className="p-4 rounded-xl bg-muted/50 border border-border">
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-full bg-secondary/50 flex items-center justify-center flex-shrink-0">
+                          <FileText className="w-5 h-5 text-secondary-foreground" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Uses</p>
+                          <p className="text-sm text-foreground">{result.usage}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Description */}
+                    <div className="p-4 rounded-xl bg-muted/30 border border-border">
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                          <Info className="w-5 h-5 text-muted-foreground" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Description</p>
+                          <p className="text-sm text-foreground">{result.description}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Warnings */}
+                    {result.warnings.length > 0 && (
+                      <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/20">
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 rounded-full bg-destructive/20 flex items-center justify-center flex-shrink-0">
+                            <AlertCircle className="w-5 h-5 text-destructive" />
+                          </div>
+                          <div>
+                            <p className="text-xs text-destructive uppercase tracking-wide mb-1">Important Warnings</p>
+                            <ul className="text-sm space-y-1">
+                              {result.warnings.map((warning, i) => (
+                                <li key={i} className="flex items-start gap-2">
+                                  <span className="text-destructive">•</span>
+                                  <span>{warning}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Tips */}
           <Card className="mt-8 glass-card">
