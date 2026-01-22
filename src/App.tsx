@@ -8,6 +8,7 @@ import Home from "./pages/Home";
 import Detection from "./pages/Detection";
 import History from "./pages/History";
 import About from "./pages/About";
+import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -21,6 +22,7 @@ const App = () => (
         <Layout>
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
             <Route path="/detection" element={<Detection />} />
             <Route path="/history" element={<History />} />
             <Route path="/about" element={<About />} />
