@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import heroPills from "@/assets/hero-pills.jpg";
 
 export default function Login() {
   const [isLogin, setIsLogin] = useState(true);
@@ -31,6 +32,9 @@ export default function Login() {
         const { error } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/`,
+          },
         });
         if (error) throw error;
         toast({ title: "Account created!", description: "You can now login." });
@@ -48,69 +52,98 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
-      <div className="w-full max-w-md">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <p className="text-primary font-semibold uppercase tracking-wide text-sm mb-2">
-            Detection and Identification of Pills
-          </p>
-          <h1 className="text-4xl font-display font-bold text-foreground">
-            {isLogin ? "Login" : "Sign Up"}
-          </h1>
+    <div className="min-h-screen bg-background">
+      {/* Hero Section with Background Image */}
+      <section className="relative h-[35vh] min-h-[250px] flex items-center justify-start overflow-hidden">
+        {/* Background Image */}
+        <div className="absolute inset-0">
+          <img
+            src={heroPills}
+            alt="Pills background"
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-black/30" />
         </div>
+        
+        {/* Corner Bracket Text Overlay */}
+        <div className="relative z-10 ml-8 md:ml-16">
+          <div className="relative p-4">
+            {/* Corner Brackets */}
+            <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-white" />
+            <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-white" />
+            
+            <h1 className="text-3xl md:text-5xl font-display font-bold text-white px-4 py-6">
+              Login
+            </h1>
+          </div>
+        </div>
+      </section>
 
-        {/* Form Card */}
-        <form onSubmit={handleSubmit} className="space-y-6 bg-card p-8 rounded-xl border border-border shadow-lg">
-          <div className="space-y-2">
-            <Label htmlFor="email" className="text-center block text-muted-foreground">
-              Email
-            </Label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="text-center border-border focus:border-primary"
-              placeholder="Enter your email"
-            />
+      {/* Form Section */}
+      <div className="py-12 px-4">
+        <div className="w-full max-w-md mx-auto">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <p className="text-primary font-semibold uppercase tracking-wide text-sm mb-2">
+              Detection and Identification of Pills
+            </p>
+            <h2 className="text-4xl font-display font-bold text-foreground">
+              {isLogin ? "Login" : "Sign Up"}
+            </h2>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="password" className="text-center block text-muted-foreground">
-              Password
-            </Label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="text-center border-border focus:border-primary"
-              placeholder="Enter your password"
-            />
-          </div>
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-center block text-muted-foreground">
+                {isLogin ? "Username" : "Email"}
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="text-center border-border focus:border-primary"
+                placeholder="Enter your email"
+              />
+            </div>
 
-          <Button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground py-6"
-          >
-            {loading ? "Please wait..." : isLogin ? "Login" : "Sign Up"}
-          </Button>
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-center block text-muted-foreground">
+                Password
+              </Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="text-center border-border focus:border-primary"
+                placeholder="Enter your password"
+              />
+            </div>
 
-          <p className="text-center text-sm text-muted-foreground">
-            {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
-            <button
-              type="button"
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-primary hover:underline font-medium"
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground py-6"
             >
-              {isLogin ? "Sign Up" : "Login"}
-            </button>
-          </p>
-        </form>
+              {loading ? "Please wait..." : isLogin ? "Login" : "Sign Up"}
+            </Button>
+
+            <p className="text-center text-sm text-muted-foreground">
+              {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
+              <button
+                type="button"
+                onClick={() => setIsLogin(!isLogin)}
+                className="text-primary hover:underline font-medium"
+              >
+                {isLogin ? "Sign Up" : "Login"}
+              </button>
+            </p>
+          </form>
+        </div>
       </div>
     </div>
   );

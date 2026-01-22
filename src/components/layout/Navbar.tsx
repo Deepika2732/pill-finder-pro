@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { name: "HOME", path: "/", icon: Home },
-  { name: "LOGIN", path: "/login", icon: LogIn },
+  { name: "HOME", path: "/home", icon: Home },
+  { name: "LOGIN", path: "/", icon: LogIn },
   { name: "PREVIEW", path: "/detection", icon: ScanSearch },
 ];
 
