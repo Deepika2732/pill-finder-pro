@@ -8,7 +8,7 @@
 
 @layer base {
   :root {
-    --background: 200 20% 98%;
+    --background: 0 0% 100%;
     --foreground: 210 40% 15%;
 
     --card: 0 0% 100%;
@@ -17,48 +17,45 @@
     --popover: 0 0% 100%;
     --popover-foreground: 210 40% 15%;
 
-    --primary: 173 58% 39%;
+    /* Orange/Coral accent - matching reference */
+    --primary: 20 90% 48%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 200 25% 94%;
-    --secondary-foreground: 210 40% 20%;
+    /* Blue buttons */
+    --secondary: 210 70% 50%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 200 20% 96%;
+    --muted: 210 20% 96%;
     --muted-foreground: 210 15% 45%;
 
-    --accent: 188 78% 41%;
+    /* Emerald/Green for Recognize button */
+    --accent: 160 84% 39%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 200 20% 88%;
-    --input: 200 20% 88%;
-    --ring: 173 58% 39%;
+    --border: 210 20% 88%;
+    --input: 210 20% 88%;
+    --ring: 20 90% 48%;
 
-    --radius: 0.75rem;
+    --radius: 0.5rem;
 
-    /* Custom medical theme tokens */
-    --medical-teal: 173 58% 39%;
-    --medical-teal-light: 173 58% 95%;
-    --medical-cyan: 188 78% 41%;
-    --medical-blue: 210 70% 50%;
-    --medical-green: 160 60% 45%;
-    --medical-mint: 165 50% 92%;
-    --medical-gradient: linear-gradient(135deg, hsl(173 58% 39%), hsl(188 78% 41%));
-    --medical-gradient-subtle: linear-gradient(135deg, hsl(173 58% 95%), hsl(188 78% 95%));
+    /* Custom theme tokens */
+    --orange-accent: 20 90% 48%;
+    --blue-button: 210 70% 50%;
+    --green-button: 160 84% 39%;
     --glass-bg: 0 0% 100% / 0.8;
     --shadow-soft: 0 4px 20px -4px hsl(210 40% 15% / 0.1);
-    --shadow-glow: 0 0 40px hsl(173 58% 39% / 0.15);
 
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 210 40% 15%;
-    --sidebar-primary: 173 58% 39%;
+    --sidebar-primary: 20 90% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 173 58% 95%;
-    --sidebar-accent-foreground: 173 58% 25%;
-    --sidebar-border: 200 20% 88%;
-    --sidebar-ring: 173 58% 39%;
+    --sidebar-accent: 20 90% 95%;
+    --sidebar-accent-foreground: 20 90% 30%;
+    --sidebar-border: 210 20% 88%;
+    --sidebar-ring: 20 90% 48%;
   }
 
   .dark {
@@ -68,19 +65,16 @@
     --card: 210 35% 12%;
     --card-foreground: 200 20% 95%;
 
-    --popover: 210 35% 12%;
-    --popover-foreground: 200 20% 95%;
-
-    --primary: 173 58% 45%;
+    --primary: 20 90% 55%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 30% 18%;
-    --secondary-foreground: 200 20% 90%;
+    --secondary: 210 70% 55%;
+    --secondary-foreground: 0 0% 100%;
 
     --muted: 210 30% 15%;
     --muted-foreground: 200 15% 60%;
 
-    --accent: 188 78% 45%;
+    --accent: 160 84% 45%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 70% 50%;
@@ -88,21 +82,20 @@
 
     --border: 210 30% 20%;
     --input: 210 30% 20%;
-    --ring: 173 58% 45%;
+    --ring: 20 90% 55%;
 
-    --medical-teal: 173 58% 45%;
-    --medical-teal-light: 173 30% 15%;
-    --medical-cyan: 188 78% 45%;
-    --medical-gradient: linear-gradient(135deg, hsl(173 58% 45%), hsl(188 78% 45%));
+    --orange-accent: 20 90% 55%;
+    --blue-button: 210 70% 55%;
+    --green-button: 160 84% 45%;
 
     --sidebar-background: 210 35% 10%;
     --sidebar-foreground: 200 20% 95%;
-    --sidebar-primary: 173 58% 45%;
+    --sidebar-primary: 20 90% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 173 30% 18%;
-    --sidebar-accent-foreground: 173 58% 80%;
+    --sidebar-accent: 20 50% 18%;
+    --sidebar-accent-foreground: 20 90% 80%;
     --sidebar-border: 210 30% 20%;
-    --sidebar-ring: 173 58% 45%;
+    --sidebar-ring: 20 90% 55%;
   }
 }
 
@@ -130,19 +123,19 @@
   }
 
   .gradient-text {
-    @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
+    @apply text-primary;
   }
 
   .gradient-bg {
-    background: var(--medical-gradient);
+    @apply bg-secondary;
   }
 
   .gradient-bg-subtle {
-    background: var(--medical-gradient-subtle);
+    @apply bg-secondary/10;
   }
 
   .glow {
-    box-shadow: var(--shadow-glow);
+    box-shadow: 0 0 20px hsl(var(--secondary) / 0.3);
   }
 
   .animate-float {

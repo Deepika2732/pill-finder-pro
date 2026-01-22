@@ -201,7 +201,7 @@ export default function Detection() {
                   <Button
                     onClick={handleSubmit}
                     disabled={!selectedImage || isSubmitted}
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground px-12 py-6"
+                    className="bg-secondary hover:bg-secondary/90 text-secondary-foreground px-12 py-6"
                   >
                     Submit
                   </Button>
@@ -209,7 +209,7 @@ export default function Detection() {
                   <Button
                     onClick={analyzeImage}
                     disabled={!isSubmitted || isAnalyzing}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-12 py-6"
+                    className="bg-accent hover:bg-accent/90 text-accent-foreground px-12 py-6"
                   >
                     {isAnalyzing ? (
                       <>

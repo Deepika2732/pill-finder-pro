@@ -95,7 +95,7 @@ export default function Login() {
           <Button
             type="submit"
             disabled={loading}
-            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-6"
+            className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground py-6"
           >
             {loading ? "Please wait..." : isLogin ? "Login" : "Sign Up"}
           </Button>
