@@ -1,14 +1,13 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, Pill, Home, ScanSearch, History, Info } from "lucide-react";
+import { Menu, X, Pill, Home, ScanSearch, History, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { name: "Home", path: "/", icon: Home },
-  { name: "Detection", path: "/detection", icon: ScanSearch },
-  { name: "History", path: "/history", icon: History },
-  { name: "About", path: "/about", icon: Info },
+  { name: "HOME", path: "/", icon: Home },
+  { name: "LOGIN", path: "/login", icon: LogIn },
+  { name: "PREVIEW", path: "/detection", icon: ScanSearch },
 ];
 
 export function Navbar() {

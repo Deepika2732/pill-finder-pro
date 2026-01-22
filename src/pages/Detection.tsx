@@ -1,9 +1,19 @@
 import { useState, useRef, useCallback } from "react";
-import { Upload, Camera, X, Loader2, Pill, AlertCircle, CheckCircle2, Info, Stethoscope, FileText } from "lucide-react";
+import { Camera, X, Loader2, Pill, AlertCircle, CheckCircle2, Info, Stethoscope, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import heroPills from "@/assets/hero-pills.jpg";
 
 interface DetectionResult {
   name: string;
@@ -21,10 +31,12 @@ interface DetectionResult {
 
 export default function Detection() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [fileName, setFileName] = useState<string>("");
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<DetectionResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showDialog, setShowDialog] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -41,32 +53,30 @@ export default function Detection() {
     const reader = new FileReader();
     reader.onload = (e) => {
       setSelectedImage(e.target?.result as string);
-      setImageFile(file);
+      setFileName(file.name);
       setResult(null);
       setError(null);
+      setIsSubmitted(false);
     };
     reader.readAsDataURL(file);
   }, [toast]);
 
-  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    const file = e.dataTransfer.files[0];
-    if (file) handleFileSelect(file);
-  }, [handleFileSelect]);
-
-  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-  }, []);
-
   const clearImage = useCallback(() => {
     setSelectedImage(null);
-    setImageFile(null);
+    setFileName("");
     setResult(null);
     setError(null);
+    setIsSubmitted(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   }, []);
+
+  const handleSubmit = () => {
+    if (!selectedImage) return;
+    setIsSubmitted(true);
+    setShowDialog(true);
+  };
 
   const analyzeImage = async () => {
     if (!selectedImage) return;
@@ -106,76 +116,100 @@ export default function Detection() {
   };
 
   return (
-    <div className="min-h-screen py-12">
-      <div className="container mx-auto px-4">
-        <div className="max-w-4xl mx-auto">
-          {/* Header */}
-          <div className="text-center mb-12">
-            <h1 className="text-3xl md:text-4xl font-display font-bold mb-4">
-              Pill <span className="gradient-text">Detection</span>
+    <div className="min-h-screen">
+      {/* Hero Section */}
+      <section className="relative h-[50vh] min-h-[350px] flex items-center justify-start overflow-hidden">
+        <div className="absolute inset-0">
+          <img
+            src={heroPills}
+            alt="Pills background"
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-black/40" />
+        </div>
+        
+        <div className="relative z-10 ml-8 md:ml-16">
+          <div className="relative p-6">
+            <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-white" />
+            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-white" />
+            
+            <h1 className="text-4xl md:text-6xl font-display font-bold text-white px-4 py-8">
+              {result ? "Result" : "Upload Image"}
             </h1>
-            <p className="text-lg text-muted-foreground">
-              Upload or capture an image of a pill for instant AI-powered identification
-            </p>
           </div>
+        </div>
+      </section>
 
-          <div className="grid lg:grid-cols-2 gap-8">
-            {/* Upload Section */}
-            <Card className="glass-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Upload className="w-5 h-5 text-primary" />
-                  Upload Image
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {!selectedImage ? (
-                  <div
-                    onDrop={handleDrop}
-                    onDragOver={handleDragOver}
-                    className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary/50 transition-colors cursor-pointer"
+      {/* Upload/Result Section */}
+      <section className="py-12 bg-background">
+        <div className="container mx-auto px-4">
+          <div className="max-w-3xl mx-auto">
+            {/* Header */}
+            <div className="text-center mb-8">
+              <p className="text-primary font-semibold uppercase tracking-wide text-sm mb-2">
+                Detection and Identification of Pills
+              </p>
+              <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground">
+                {result ? "Result" : "Upload Pills image"}
+              </h2>
+            </div>
+
+            {/* Upload Area */}
+            {!result && (
+              <div className="space-y-6">
+                {/* File Input */}
+                <div className="flex items-center gap-4 justify-center">
+                  <Button
+                    variant="outline"
                     onClick={() => fileInputRef.current?.click()}
+                    className="px-6"
                   >
-                    <div className="w-16 h-16 mx-auto rounded-xl bg-primary/10 flex items-center justify-center mb-4">
-                      <Camera className="w-8 h-8 text-primary" />
-                    </div>
-                    <p className="text-lg font-medium mb-2">
-                      Drop image here or click to upload
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Supports JPG, PNG, WEBP
-                    </p>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
-                    />
-                  </div>
-                ) : (
-                  <div className="relative">
-                    <img
-                      src={selectedImage}
-                      alt="Selected pill"
-                      className="w-full h-64 object-contain rounded-xl bg-muted"
-                    />
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      className="absolute top-2 right-2 rounded-full"
-                      onClick={clearImage}
-                    >
+                    Browse...
+                  </Button>
+                  <span className="text-muted-foreground">
+                    {fileName || "No files selected."}
+                  </span>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
+                  />
+                  {selectedImage && (
+                    <Button variant="ghost" size="icon" onClick={clearImage}>
                       <X className="w-4 h-4" />
                     </Button>
+                  )}
+                </div>
+
+                {/* Preview */}
+                {selectedImage && (
+                  <div className="flex justify-center">
+                    <div className="relative">
+                      <img
+                        src={selectedImage}
+                        alt="Selected pill"
+                        className="max-w-xs h-48 object-contain rounded-xl bg-muted border border-border"
+                      />
+                    </div>
                   </div>
                 )}
 
-                {selectedImage && (
+                {/* Buttons */}
+                <div className="flex flex-col items-center gap-4">
                   <Button
-                    className="w-full mt-4 gradient-bg py-6 rounded-xl glow"
+                    onClick={handleSubmit}
+                    disabled={!selectedImage || isSubmitted}
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground px-12 py-6"
+                  >
+                    Submit
+                  </Button>
+
+                  <Button
                     onClick={analyzeImage}
-                    disabled={isAnalyzing}
+                    disabled={!isSubmitted || isAnalyzing}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-12 py-6"
                   >
                     {isAnalyzing ? (
                       <>
@@ -183,237 +217,155 @@ export default function Detection() {
                         Analyzing...
                       </>
                     ) : (
-                      <>
-                        <Pill className="w-5 h-5 mr-2" />
-                        Analyze Pill
-                      </>
+                      "Recognize"
                     )}
                   </Button>
-                )}
-              </CardContent>
-            </Card>
+                </div>
 
-            {/* Results Section */}
-            <Card className="glass-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Pill className="w-5 h-5 text-primary" />
-                  Detection Results
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {!result && !error && !isAnalyzing && (
-                  <div className="h-64 flex flex-col items-center justify-center text-muted-foreground">
-                    <div className="w-16 h-16 rounded-xl bg-muted flex items-center justify-center mb-4">
-                      <Pill className="w-8 h-8" />
-                    </div>
-                    <p>Upload an image to see results</p>
-                  </div>
-                )}
-
-                {isAnalyzing && (
-                  <div className="h-64 flex flex-col items-center justify-center">
-                    <div className="relative w-20 h-20 mb-4">
-                      <div className="absolute inset-0 gradient-bg rounded-xl animate-pulse" />
-                      <div className="absolute inset-2 bg-card rounded-lg flex items-center justify-center">
-                        <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                      </div>
-                    </div>
-                    <p className="text-lg font-medium">Analyzing image...</p>
-                    <p className="text-sm text-muted-foreground">AI is identifying the pill</p>
-                  </div>
-                )}
-
+                {/* Error */}
                 {error && (
-                  <div className="h-64 flex flex-col items-center justify-center text-destructive">
-                    <AlertCircle className="w-12 h-12 mb-4" />
-                    <p className="text-lg font-medium">Analysis Failed</p>
-                    <p className="text-sm text-muted-foreground text-center mt-2">{error}</p>
+                  <div className="text-center text-destructive">
+                    <AlertCircle className="w-8 h-8 mx-auto mb-2" />
+                    <p>{error}</p>
                   </div>
                 )}
-
-                {result && (
-                  <div className="space-y-4 animate-fade-in">
-                    {/* Confidence Badge */}
-                    <div className="flex items-center justify-between">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        result.confidence >= 0.8 
-                          ? "bg-green-500/20 text-green-600" 
-                          : result.confidence >= 0.5 
-                            ? "bg-yellow-500/20 text-yellow-600" 
-                            : "bg-red-500/20 text-red-600"
-                      }`}>
-                        {(result.confidence * 100).toFixed(0)}% Confidence
-                      </span>
-                      <CheckCircle2 className="w-5 h-5 text-primary" />
-                    </div>
-
-                    {/* Basic Properties Grid */}
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="p-2 rounded-lg bg-muted/50 text-center">
-                        <p className="text-xs text-muted-foreground">Color</p>
-                        <p className="font-medium text-sm">{result.color}</p>
-                      </div>
-                      <div className="p-2 rounded-lg bg-muted/50 text-center">
-                        <p className="text-xs text-muted-foreground">Shape</p>
-                        <p className="font-medium text-sm">{result.shape}</p>
-                      </div>
-                      <div className="p-2 rounded-lg bg-muted/50 text-center">
-                        <p className="text-xs text-muted-foreground">Imprint</p>
-                        <p className="font-medium text-sm truncate">{result.imprint || "N/A"}</p>
-                      </div>
-                    </div>
-
-                    {/* Warnings */}
-                    {result.warnings.length > 0 && (
-                      <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
-                        <p className="text-xs text-destructive uppercase tracking-wide mb-1 flex items-center gap-1">
-                          <AlertCircle className="w-3 h-3" />
-                          Warnings
-                        </p>
-                        <ul className="text-xs space-y-0.5">
-                          {result.warnings.slice(0, 2).map((warning, i) => (
-                            <li key={i}>• {warning}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Detailed Result Card - Reference Image Style */}
-          {result && selectedImage && (
-            <Card className="mt-8 glass-card overflow-hidden animate-fade-in">
-              <div className="bg-gradient-to-r from-primary/10 to-primary/5 border-b border-primary/20 px-6 py-3">
-                <p className="text-xs text-primary uppercase tracking-widest font-medium">
-                  Detection and Identification of Pills
-                </p>
-                <h2 className="text-xl font-display font-bold text-foreground">Result</h2>
               </div>
-              
-              <CardContent className="p-6">
-                <div className="flex flex-col md:flex-row gap-6">
-                  {/* Pill Image */}
-                  <div className="flex-shrink-0">
-                    <div className="w-48 h-48 md:w-56 md:h-56 mx-auto rounded-2xl overflow-hidden bg-muted border-2 border-primary/20 shadow-lg">
-                      <img
-                        src={selectedImage}
-                        alt="Detected pill"
-                        className="w-full h-full object-contain p-2"
-                      />
-                    </div>
-                    <div className="text-center mt-4">
-                      <h3 className="text-2xl font-display font-bold text-primary">{result.name}</h3>
-                    </div>
-                  </div>
+            )}
 
-                  {/* Pill Details */}
-                  <div className="flex-1 space-y-4">
-                    {/* Info Card */}
-                    <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
-                      <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                          <Stethoscope className="w-5 h-5 text-primary" />
-                        </div>
-                        <div className="space-y-2 text-sm">
-                          <p>
-                            <span className="font-semibold text-primary">Drug Class:</span>{" "}
-                            <span className="text-foreground">{result.drugClass || "N/A"}</span>
-                          </p>
-                          <p>
-                            <span className="font-semibold text-primary">Generic Name:</span>{" "}
-                            <span className="text-foreground">{result.genericName || "N/A"}</span>
-                          </p>
-                          <p>
-                            <span className="font-semibold text-primary">Brand Name:</span>{" "}
-                            <span className="text-foreground">{result.brandName || "N/A"}</span>
-                          </p>
-                          <p>
-                            <span className="font-semibold text-primary">Pill Name:</span>{" "}
-                            <span className="text-foreground">{result.name}</span>
-                          </p>
-                        </div>
+            {/* Result Display */}
+            {result && selectedImage && (
+              <Card className="glass-card overflow-hidden animate-fade-in">
+                <CardContent className="p-6">
+                  <div className="flex flex-col md:flex-row gap-6">
+                    {/* Pill Image */}
+                    <div className="flex-shrink-0">
+                      <div className="w-48 h-48 md:w-56 md:h-56 mx-auto rounded-2xl overflow-hidden bg-muted border-2 border-primary/20 shadow-lg">
+                        <img
+                          src={selectedImage}
+                          alt="Detected pill"
+                          className="w-full h-full object-contain p-2"
+                        />
+                      </div>
+                      <div className="text-center mt-4">
+                        <h3 className="text-2xl font-display font-bold text-primary">{result.name}</h3>
+                        <span className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-medium ${
+                          result.confidence >= 0.8 
+                            ? "bg-green-500/20 text-green-600" 
+                            : result.confidence >= 0.5 
+                              ? "bg-yellow-500/20 text-yellow-600" 
+                              : "bg-red-500/20 text-red-600"
+                        }`}>
+                          {(result.confidence * 100).toFixed(0)}% Confidence
+                        </span>
                       </div>
                     </div>
 
-                    {/* Usage Card */}
-                    <div className="p-4 rounded-xl bg-muted/50 border border-border">
-                      <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-full bg-secondary/50 flex items-center justify-center flex-shrink-0">
-                          <FileText className="w-5 h-5 text-secondary-foreground" />
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Uses</p>
-                          <p className="text-sm text-foreground">{result.usage}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Description */}
-                    <div className="p-4 rounded-xl bg-muted/30 border border-border">
-                      <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                          <Info className="w-5 h-5 text-muted-foreground" />
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Description</p>
-                          <p className="text-sm text-foreground">{result.description}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Warnings */}
-                    {result.warnings.length > 0 && (
-                      <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/20">
+                    {/* Pill Details */}
+                    <div className="flex-1 space-y-4">
+                      {/* Info Card */}
+                      <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
                         <div className="flex items-start gap-3">
-                          <div className="w-10 h-10 rounded-full bg-destructive/20 flex items-center justify-center flex-shrink-0">
-                            <AlertCircle className="w-5 h-5 text-destructive" />
+                          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                            <Stethoscope className="w-5 h-5 text-primary" />
+                          </div>
+                          <div className="space-y-2 text-sm">
+                            <p><span className="font-semibold text-primary">Drug Class:</span> {result.drugClass || "N/A"}</p>
+                            <p><span className="font-semibold text-primary">Generic Name:</span> {result.genericName || "N/A"}</p>
+                            <p><span className="font-semibold text-primary">Brand Name:</span> {result.brandName || "N/A"}</p>
+                            <p><span className="font-semibold text-primary">Color:</span> {result.color}</p>
+                            <p><span className="font-semibold text-primary">Shape:</span> {result.shape}</p>
+                            <p><span className="font-semibold text-primary">Imprint:</span> {result.imprint || "N/A"}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Usage Card */}
+                      <div className="p-4 rounded-xl bg-muted/50 border border-border">
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 rounded-full bg-secondary/50 flex items-center justify-center flex-shrink-0">
+                            <FileText className="w-5 h-5 text-secondary-foreground" />
                           </div>
                           <div>
-                            <p className="text-xs text-destructive uppercase tracking-wide mb-1">Important Warnings</p>
-                            <ul className="text-sm space-y-1">
-                              {result.warnings.map((warning, i) => (
-                                <li key={i} className="flex items-start gap-2">
-                                  <span className="text-destructive">•</span>
-                                  <span>{warning}</span>
-                                </li>
-                              ))}
-                            </ul>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Uses</p>
+                            <p className="text-sm text-foreground">{result.usage}</p>
                           </div>
                         </div>
                       </div>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
 
-          {/* Tips */}
-          <Card className="mt-8 glass-card">
-            <CardContent className="py-6">
-              <h3 className="font-display font-semibold mb-4">Tips for Best Results</h3>
-              <div className="grid md:grid-cols-3 gap-4 text-sm text-muted-foreground">
-                <div className="flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
-                  <span>Use good lighting and a plain background</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
-                  <span>Capture any visible imprints or markings</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
-                  <span>Take a clear, focused close-up image</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                      {/* Description */}
+                      <div className="p-4 rounded-xl bg-muted/30 border border-border">
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                            <Info className="w-5 h-5 text-muted-foreground" />
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Description</p>
+                            <p className="text-sm text-foreground">{result.description}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Warnings */}
+                      {result.warnings.length > 0 && (
+                        <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/20">
+                          <div className="flex items-start gap-3">
+                            <div className="w-10 h-10 rounded-full bg-destructive/20 flex items-center justify-center flex-shrink-0">
+                              <AlertCircle className="w-5 h-5 text-destructive" />
+                            </div>
+                            <div>
+                              <p className="text-xs text-destructive uppercase tracking-wide mb-1">Important Warnings</p>
+                              <ul className="text-sm space-y-1">
+                                {result.warnings.map((warning, i) => (
+                                  <li key={i} className="flex items-start gap-2">
+                                    <span className="text-destructive">•</span>
+                                    <span>{warning}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* New Detection Button */}
+                  <div className="mt-8 text-center">
+                    <Button onClick={clearImage} variant="outline" className="px-8">
+                      Detect Another Pill
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </div>
-      </div>
+      </section>
+
+      {/* Dialog */}
+      <AlertDialog open={showDialog} onOpenChange={setShowDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Camera className="w-5 h-5" />
+              Image Submitted
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Click the Recognize button to predict the result
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction className="bg-primary hover:bg-primary/90">OK</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Footer */}
+      <footer className="py-8 border-t border-border bg-muted/30">
+        <div className="container mx-auto px-4 text-center text-muted-foreground">
+          <p>© 2024 PillDetect. AI-powered pill identification for safety.</p>
+        </div>
+      </footer>
     </div>
   );
 }
