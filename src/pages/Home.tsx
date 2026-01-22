@@ -49,7 +49,7 @@ export default function Home() {
               <Button
                 asChild
                 size="lg"
-                className="bg-primary hover:bg-primary/90 text-primary-foreground px-12 py-6 text-lg"
+                className="bg-secondary hover:bg-secondary/90 text-secondary-foreground px-12 py-6 text-lg"
               >
                 <Link to="/detection">
                   Start Detection
