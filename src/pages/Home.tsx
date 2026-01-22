@@ -7,7 +7,7 @@ export default function Home() {
   return (
     <div className="min-h-screen">
       {/* Hero Section with Background Image */}
-      <section className="relative h-[60vh] min-h-[400px] flex items-center justify-start overflow-hidden">
+      <section className="relative h-[70vh] min-h-[500px] flex items-center justify-start overflow-hidden">
         {/* Background Image */}
         <div className="absolute inset-0">
           <img
@@ -25,9 +25,17 @@ export default function Home() {
             <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-white" />
             <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-white" />
             
-            <h1 className="text-4xl md:text-6xl font-display font-bold text-white px-4 py-8">
-              Upload Image
-            </h1>
+            <div className="px-4 py-8">
+              <h1 className="text-4xl md:text-6xl font-display font-bold text-white leading-tight">
+                Detection and
+              </h1>
+              <h1 className="text-4xl md:text-6xl font-display font-bold text-primary leading-tight">
+                Identification of Pills
+              </h1>
+              <p className="text-white/80 text-lg mt-4 uppercase tracking-wider">
+                Using Machine Learning
+              </p>
+            </div>
           </div>
         </div>
       </section>
