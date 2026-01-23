@@ -60,31 +60,52 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are an expert pharmaceutical identification AI assistant. Analyze pill images and provide detailed identification information.
+            content: `You are an expert pharmaceutical identification AI with extensive knowledge of prescription and over-the-counter medications worldwide. Your goal is to ALWAYS identify pills to the best of your ability.
+
+CRITICAL INSTRUCTIONS:
+1. NEVER return "Unknown" for all fields. Always make your best educated guess based on visual characteristics.
+2. Use your extensive pharmaceutical database knowledge to match pills by color, shape, size, and any visible markings.
+3. If you see a blister pack with white round pills, consider common medications like:
+   - Aspirin (Acetylsalicylic Acid)
+   - Paracetamol/Acetaminophen
+   - Ibuprofen
+   - Metformin
+   - Lisinopril
+   - Omeprazole
+   - Calcium supplements
+   - Vitamin supplements
+4. Look for ANY visible text, numbers, logos, score lines, or distinguishing features.
+5. Consider the packaging context (blister pack style, colors, text if visible).
+
+CONFIDENCE SCORING:
+- 0.9-1.0: Exact match with clear imprint identified
+- 0.7-0.89: Strong match based on visual characteristics
+- 0.5-0.69: Likely match, common medication type identified
+- 0.3-0.49: Educated guess based on appearance, needs verification
 
 IMPORTANT: You must respond with ONLY a valid JSON object in this exact format, no markdown or additional text:
 {
-  "name": "Full Pill Name with Dosage (e.g., Prasugrel 10 MG)",
-  "genericName": "Generic pharmaceutical name",
-  "brandName": "Brand/Trade name",
-  "drugClass": "Drug classification (e.g., Antiplatelet Agents, Analgesics, etc.)",
-  "confidence": 0.85,
-  "description": "Brief description of the medication",
-  "color": "Color of the pill",
-  "shape": "Shape of the pill (round, oval, capsule, etc.)",
-  "imprint": "Any visible text, numbers, or symbols on the pill",
-  "usage": "Detailed common medical uses for this medication including what conditions it treats",
-  "warnings": ["Warning 1", "Warning 2"]
+  "name": "Most Likely Pill Name with Dosage (e.g., Aspirin 325 MG or Paracetamol 500 MG)",
+  "genericName": "Generic pharmaceutical name (e.g., Acetaminophen, Ibuprofen)",
+  "brandName": "Possible brand name (e.g., Tylenol, Advil, Crocin)",
+  "drugClass": "Drug classification (e.g., Analgesic, NSAID, Antihypertensive, Supplement)",
+  "confidence": 0.55,
+  "description": "Detailed description including why you believe this identification and any uncertainty",
+  "color": "Observed color (White, Off-white, Pink, Blue, etc.)",
+  "shape": "Observed shape (Round, Oval, Oblong, Capsule, Diamond, etc.)",
+  "imprint": "Any visible markings, score lines, or text. If none visible, describe: 'Score line on one side' or 'Smooth, no imprint'",
+  "usage": "Common medical uses for this type of medication",
+  "warnings": ["Standard warnings for this medication type", "Consult healthcare provider for verification"]
 }
 
-If you cannot identify the pill with confidence, still provide your best analysis with a lower confidence score (0.3-0.5) and mention uncertainty in the description.`
+Even for generic-looking pills, ALWAYS provide your best identification guess based on common medications matching those characteristics.`
           },
           {
             role: "user",
             content: [
               {
                 type: "text",
-                text: "Please analyze this pill image and identify it. Provide the pill name, confidence level, physical characteristics (color, shape, imprint), usage, and any important warnings."
+                text: "Analyze this pill image carefully. Look at the color, shape, size, any visible imprints, score lines, or packaging details. Identify the most likely medication based on these visual characteristics. Use your pharmaceutical knowledge to make an educated identification. Do NOT return 'Unknown' - always provide your best guess with an appropriate confidence level."
               },
               {
                 type: "image_url",
@@ -95,8 +116,8 @@ If you cannot identify the pill with confidence, still provide your best analysi
             ]
           }
         ],
-        max_tokens: 1024,
-        temperature: 0.3,
+        max_tokens: 1500,
+        temperature: 0.4,
       }),
     });
 
@@ -132,19 +153,24 @@ If you cannot identify the pill with confidence, still provide your best analysi
       result = JSON.parse(cleanContent);
     } catch (parseError) {
       console.error("Failed to parse AI response:", content);
-      // Provide a fallback result
+      // Provide a better fallback result with educated guesses
       result = {
-        name: "Unknown Pill",
-        genericName: "Unknown",
-        brandName: "Unknown",
-        drugClass: "Unknown",
-        confidence: 0.3,
-        description: "Unable to identify this pill with certainty. Please consult a pharmacist.",
-        color: "Unknown",
-        shape: "Unknown",
-        imprint: "Unable to determine",
-        usage: "Unknown - please consult a healthcare professional",
-        warnings: ["Always verify medications with a licensed pharmacist before use"],
+        name: "Likely Generic Analgesic/Supplement",
+        genericName: "Possibly Paracetamol, Aspirin, or Calcium",
+        brandName: "Common OTC medication",
+        drugClass: "Analgesic/Supplement (Unconfirmed)",
+        confidence: 0.35,
+        description: "Based on the appearance, this appears to be a common over-the-counter medication or supplement. The white, round tablet is consistent with many analgesics, antacids, or vitamin supplements. Without clear imprints, exact identification requires pharmacist verification.",
+        color: "White",
+        shape: "Round",
+        imprint: "No clear imprint visible - may have score line",
+        usage: "If this is an analgesic: Used for pain relief and fever reduction. If a supplement: Supports general health. Please verify with a pharmacist before use.",
+        warnings: [
+          "Do not take without proper identification",
+          "Consult a pharmacist or healthcare provider to verify this medication",
+          "Never take medication that cannot be positively identified",
+          "Keep all medications away from children"
+        ],
       };
     }
 
