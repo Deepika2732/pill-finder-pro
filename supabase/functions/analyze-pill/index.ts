@@ -28,7 +28,7 @@ serve(async (req) => {
   }
 
   try {
-    const { image } = await req.json();
+    const { image, hint } = await req.json();
 
     if (!image) {
       return new Response(
@@ -56,11 +56,14 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-3-flash-preview",
         messages: [
           {
             role: "system",
             content: `You are an expert pharmaceutical identification AI with extensive knowledge of prescription and over-the-counter medications worldwide.
+
+OPTIONAL USER CONTEXT:
+The user may provide a short hint (example: "sleeping tablet" or "cough tablet"). Use it as additional signal, but do not ignore what the image shows. If the hint conflicts with the image, prefer the image.
 
 STEP 1 - DETERMINE IF IT'S A PILL:
 First, determine if the image contains a pharmaceutical pill/tablet/capsule. 
@@ -88,6 +91,9 @@ CONFIDENCE SCORING FOR PILLS:
 - 0.5-0.69: Likely match, medication type identified from context
 - 0.3-0.49: Educated guess based on appearance, needs verification
 
+IMPORTANT OUTPUT RULES (PILLS):
+- Do NOT use "N/A" for pill fields. If uncertain, use "Unconfirmed" and provide best-guess options in the description.
+
 IMPORTANT: You must respond with ONLY a valid JSON object in this exact format, no markdown or additional text:
 {
   "name": "Pill Name with Dosage based on packaging OR 'Not a Pharmaceutical Pill' for non-pills",
@@ -110,7 +116,7 @@ READ THE PACKAGING TEXT CAREFULLY - if it says "Cough Tablet" identify it as a c
             content: [
               {
                 type: "text",
-                text: "Analyze this image carefully. First determine if it contains a pharmaceutical pill/tablet or something else entirely (like fruit, food, or other objects). If it's NOT a pill, return 100% confidence that it's not a pharmaceutical product. If it IS a pill, READ ANY TEXT ON THE PACKAGING to identify the medication type (e.g., if packaging says 'Cough Tablet' or 'Cold & Flu', identify it as that type of medication). Look at color, shape, size, any visible imprints, score lines, or packaging details. Identify the most likely medication based on ALL visual characteristics including packaging text."
+                text: `Analyze this image carefully. First determine if it contains a pharmaceutical pill/tablet or something else entirely (like fruit, food, or other objects). If it's NOT a pill, return 100% confidence that it's not a pharmaceutical product. If it IS a pill, READ ANY TEXT ON THE PACKAGING to identify the medication type (e.g., if packaging says 'Cough Tablet' or 'Cold & Flu', identify it as that type of medication). Look at color, shape, size, any visible imprints, score lines, or packaging details. Identify the most likely medication based on ALL visual characteristics including packaging text.\n\nUser hint (optional): ${typeof hint === "string" && hint.trim() ? hint.trim() : "(none)"}`
               },
               {
                 type: "image_url",
@@ -177,6 +183,40 @@ READ THE PACKAGING TEXT CAREFULLY - if it says "Cough Tablet" identify it as a c
           "Keep all medications away from children"
         ],
       };
+    }
+
+    // Normalize result so pill images never show empty/N/A fields in the UI
+    const isNonPill = (result.name || "").trim() === "Not a Pharmaceutical Pill";
+    const normalizeString = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+    const isNA = (s: string) => !s || /^(n\/?a|na|none)$/i.test(s);
+
+    if (!isNonPill) {
+      const drugClass = normalizeString(result.drugClass);
+      const genericName = normalizeString(result.genericName);
+      const brandName = normalizeString(result.brandName);
+      const imprint = normalizeString(result.imprint);
+      const usage = normalizeString(result.usage);
+
+      if (isNA(drugClass)) result.drugClass = "Unconfirmed";
+      if (isNA(genericName)) result.genericName = "Unconfirmed";
+      if (isNA(brandName)) result.brandName = "Unconfirmed";
+      if (isNA(imprint)) result.imprint = "No visible imprint";
+      if (isNA(usage)) {
+        result.usage =
+          "Unable to confirm exact use without imprint/packaging. Upload the blister/box text for a more accurate match.";
+      }
+
+      if (!Array.isArray(result.warnings) || result.warnings.length === 0) {
+        result.warnings = [
+          "Do not take medication without positive identification",
+          "Consult a pharmacist or healthcare provider to verify",
+        ];
+      }
+
+      if (typeof result.confidence !== "number" || Number.isNaN(result.confidence)) {
+        result.confidence = 0.35;
+      }
+      result.confidence = Math.max(0, Math.min(1, result.confidence));
     }
 
     // Save to detection history

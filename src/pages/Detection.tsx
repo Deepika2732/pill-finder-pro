@@ -2,6 +2,8 @@ import { useState, useRef, useCallback } from "react";
 import { Camera, X, Loader2, Pill, AlertCircle, CheckCircle2, Info, Stethoscope, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -37,8 +39,18 @@ export default function Detection() {
   const [result, setResult] = useState<DetectionResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showDialog, setShowDialog] = useState(false);
+  const [userHint, setUserHint] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  const isNonPill = result?.name === "Not a Pharmaceutical Pill";
+
+  const displayValue = (value: string | null | undefined) => {
+    const v = (value ?? "").trim();
+    if (!v) return "Unconfirmed";
+    if (/^(n\/?a|na|none)$/i.test(v)) return "Unconfirmed";
+    return v;
+  };
 
   const handleFileSelect = useCallback((file: File) => {
     if (!file.type.startsWith("image/")) {
@@ -57,6 +69,7 @@ export default function Detection() {
       setResult(null);
       setError(null);
       setIsSubmitted(false);
+      setUserHint("");
     };
     reader.readAsDataURL(file);
   }, [toast]);
@@ -67,6 +80,7 @@ export default function Detection() {
     setResult(null);
     setError(null);
     setIsSubmitted(false);
+    setUserHint("");
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -87,7 +101,7 @@ export default function Detection() {
 
     try {
       const { data, error: fnError } = await supabase.functions.invoke("analyze-pill", {
-        body: { image: selectedImage },
+        body: { image: selectedImage, hint: userHint.trim() || null },
       });
 
       if (fnError) throw fnError;
@@ -196,6 +210,24 @@ export default function Detection() {
                   </div>
                 )}
 
+                {/* Optional hint */}
+                {selectedImage && (
+                  <div className="max-w-md mx-auto space-y-2">
+                    <Label htmlFor="pill-hint" className="text-sm text-foreground">
+                      Optional: what is this pill? (e.g., “cough tablet”, “sleeping pill”)
+                    </Label>
+                    <Input
+                      id="pill-hint"
+                      value={userHint}
+                      onChange={(e) => setUserHint(e.target.value)}
+                      placeholder="Type your guess to improve accuracy"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Tip: Upload the blister/box text for best accuracy.
+                    </p>
+                  </div>
+                )}
+
                 {/* Buttons */}
                 <div className="flex flex-col items-center gap-4">
                   <Button
@@ -267,12 +299,12 @@ export default function Detection() {
                             <Stethoscope className="w-6 h-6 text-primary" />
                           </div>
                           <div className="space-y-2">
-                            <p className="text-sm"><span className="font-bold text-primary">Drug Class:</span> <span className="text-foreground">{result.drugClass || "Unknown"}</span></p>
-                            <p className="text-sm"><span className="font-bold text-primary">Generic Name:</span> <span className="text-foreground">{result.genericName || "Unknown"}</span></p>
-                            <p className="text-sm"><span className="font-bold text-primary">Brand Name:</span> <span className="text-foreground">{result.brandName || "Unknown"}</span></p>
-                            <p className="text-sm"><span className="font-bold text-primary">Color:</span> <span className="text-foreground">{result.color || "Unknown"}</span></p>
-                            <p className="text-sm"><span className="font-bold text-primary">Shape:</span> <span className="text-foreground">{result.shape || "Unknown"}</span></p>
-                            <p className="text-sm"><span className="font-bold text-primary">Imprint:</span> <span className="text-foreground">{result.imprint || "Unknown"}</span></p>
+                            <p className="text-sm"><span className="font-bold text-primary">Drug Class:</span> <span className="text-foreground">{isNonPill ? (result.drugClass || "N/A") : displayValue(result.drugClass)}</span></p>
+                            <p className="text-sm"><span className="font-bold text-primary">Generic Name:</span> <span className="text-foreground">{isNonPill ? (result.genericName || "N/A") : displayValue(result.genericName)}</span></p>
+                            <p className="text-sm"><span className="font-bold text-primary">Brand Name:</span> <span className="text-foreground">{isNonPill ? (result.brandName || "N/A") : displayValue(result.brandName)}</span></p>
+                            <p className="text-sm"><span className="font-bold text-primary">Color:</span> <span className="text-foreground">{displayValue(result.color)}</span></p>
+                            <p className="text-sm"><span className="font-bold text-primary">Shape:</span> <span className="text-foreground">{displayValue(result.shape)}</span></p>
+                            <p className="text-sm"><span className="font-bold text-primary">Imprint:</span> <span className="text-foreground">{displayValue(result.imprint)}</span></p>
                           </div>
                         </div>
                       </div>
