@@ -60,52 +60,57 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are an expert pharmaceutical identification AI with extensive knowledge of prescription and over-the-counter medications worldwide. Your goal is to ALWAYS identify pills to the best of your ability.
+            content: `You are an expert pharmaceutical identification AI with extensive knowledge of prescription and over-the-counter medications worldwide.
 
-CRITICAL INSTRUCTIONS:
+STEP 1 - DETERMINE IF IT'S A PILL:
+First, determine if the image contains a pharmaceutical pill/tablet/capsule. 
+
+IF IT'S NOT A PILL (fruit, food, random object, animal, etc.):
+Return with confidence: 1.0 (100% confident it's NOT a pill) and set name to "Not a Pharmaceutical Pill", all drug fields to "N/A", and describe what it actually is.
+
+IF IT IS A PILL:
+Your goal is to ALWAYS identify the pill to the best of your ability.
+
+CRITICAL INSTRUCTIONS FOR PILL IDENTIFICATION:
 1. NEVER return "Unknown" for all fields. Always make your best educated guess based on visual characteristics.
-2. Use your extensive pharmaceutical database knowledge to match pills by color, shape, size, and any visible markings.
-3. If you see a blister pack with white round pills, consider common medications like:
-   - Aspirin (Acetylsalicylic Acid)
-   - Paracetamol/Acetaminophen
-   - Ibuprofen
-   - Metformin
-   - Lisinopril
-   - Omeprazole
-   - Calcium supplements
-   - Vitamin supplements
-4. Look for ANY visible text, numbers, logos, score lines, or distinguishing features.
-5. Consider the packaging context (blister pack style, colors, text if visible).
+2. READ ANY VISIBLE TEXT on the packaging carefully - the packaging often tells you exactly what medication it is (e.g., "Cough Tablet", "Cold & Flu", "Paracetamol 500mg", etc.)
+3. Use your extensive pharmaceutical database knowledge to match pills by color, shape, size, and any visible markings.
+4. If you see text like "Cough", "Cold", "Flu", "Fever", etc. on packaging, identify it as that type of medication:
+   - Cough tablets: Often contain Dextromethorphan, Guaifenesin, Pholcodine, or herbal ingredients
+   - Cold/Flu tablets: May contain Pseudoephedrine, Phenylephrine, Chlorpheniramine
+   - Pain relievers: Paracetamol/Acetaminophen, Aspirin, Ibuprofen
+5. Look for brand names on packaging (e.g., Benadryl, Robitussin, Strepsils, Vicks, etc.)
+6. Consider the packaging context, colors, logos, and any visible text.
 
-CONFIDENCE SCORING:
-- 0.9-1.0: Exact match with clear imprint identified
-- 0.7-0.89: Strong match based on visual characteristics
-- 0.5-0.69: Likely match, common medication type identified
+CONFIDENCE SCORING FOR PILLS:
+- 0.9-1.0: Exact match with clear imprint or packaging text identified
+- 0.7-0.89: Strong match based on visible packaging info or visual characteristics
+- 0.5-0.69: Likely match, medication type identified from context
 - 0.3-0.49: Educated guess based on appearance, needs verification
 
 IMPORTANT: You must respond with ONLY a valid JSON object in this exact format, no markdown or additional text:
 {
-  "name": "Most Likely Pill Name with Dosage (e.g., Aspirin 325 MG or Paracetamol 500 MG)",
-  "genericName": "Generic pharmaceutical name (e.g., Acetaminophen, Ibuprofen)",
-  "brandName": "Possible brand name (e.g., Tylenol, Advil, Crocin)",
-  "drugClass": "Drug classification (e.g., Analgesic, NSAID, Antihypertensive, Supplement)",
-  "confidence": 0.55,
-  "description": "Detailed description including why you believe this identification and any uncertainty",
-  "color": "Observed color (White, Off-white, Pink, Blue, etc.)",
-  "shape": "Observed shape (Round, Oval, Oblong, Capsule, Diamond, etc.)",
-  "imprint": "Any visible markings, score lines, or text. If none visible, describe: 'Score line on one side' or 'Smooth, no imprint'",
-  "usage": "Common medical uses for this type of medication",
-  "warnings": ["Standard warnings for this medication type", "Consult healthcare provider for verification"]
+  "name": "Pill Name with Dosage based on packaging OR 'Not a Pharmaceutical Pill' for non-pills",
+  "genericName": "Generic pharmaceutical name (or 'N/A' for non-pills)",
+  "brandName": "Brand name from packaging if visible (or 'N/A' for non-pills)",
+  "drugClass": "Drug classification (or 'N/A' for non-pills)",
+  "confidence": 0.75,
+  "description": "For pills: detailed description. For non-pills: describe what the object actually is",
+  "color": "Observed color",
+  "shape": "Observed shape",
+  "imprint": "Any visible markings on pill, or describe object texture for non-pills",
+  "usage": "For pills: medical uses. For non-pills: what the item is commonly used for (e.g., 'Food item, source of vitamins')",
+  "warnings": ["Warnings array - for pills: medication warnings. For non-pills: ['This is not a pharmaceutical product']"]
 }
 
-Even for generic-looking pills, ALWAYS provide your best identification guess based on common medications matching those characteristics.`
+READ THE PACKAGING TEXT CAREFULLY - if it says "Cough Tablet" identify it as a cough medication, not paracetamol!`
           },
           {
             role: "user",
             content: [
               {
                 type: "text",
-                text: "Analyze this pill image carefully. Look at the color, shape, size, any visible imprints, score lines, or packaging details. Identify the most likely medication based on these visual characteristics. Use your pharmaceutical knowledge to make an educated identification. Do NOT return 'Unknown' - always provide your best guess with an appropriate confidence level."
+                text: "Analyze this image carefully. First determine if it contains a pharmaceutical pill/tablet or something else entirely (like fruit, food, or other objects). If it's NOT a pill, return 100% confidence that it's not a pharmaceutical product. If it IS a pill, READ ANY TEXT ON THE PACKAGING to identify the medication type (e.g., if packaging says 'Cough Tablet' or 'Cold & Flu', identify it as that type of medication). Look at color, shape, size, any visible imprints, score lines, or packaging details. Identify the most likely medication based on ALL visual characteristics including packaging text."
               },
               {
                 type: "image_url",
@@ -117,7 +122,7 @@ Even for generic-looking pills, ALWAYS provide your best identification guess ba
           }
         ],
         max_tokens: 1500,
-        temperature: 0.4,
+        temperature: 0.3,
       }),
     });
 
