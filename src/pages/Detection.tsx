@@ -234,109 +234,113 @@ export default function Detection() {
 
             {/* Result Display */}
             {result && selectedImage && (
-              <Card className="glass-card overflow-hidden animate-fade-in">
-                <CardContent className="p-6">
-                  <div className="flex flex-col md:flex-row gap-6">
-                    {/* Pill Image */}
-                    <div className="flex-shrink-0">
-                      <div className="w-48 h-48 md:w-56 md:h-56 mx-auto rounded-2xl overflow-hidden bg-muted border-2 border-primary/20 shadow-lg">
-                        <img
-                          src={selectedImage}
-                          alt="Detected pill"
-                          className="w-full h-full object-contain p-2"
-                        />
-                      </div>
-                      <div className="text-center mt-4">
-                        <h3 className="text-2xl font-display font-bold text-primary">{result.name}</h3>
-                        <span className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-medium ${
+              <div className="space-y-6 animate-fade-in">
+                {/* Main Result Card */}
+                <Card className="overflow-hidden border-border shadow-lg">
+                  <CardContent className="p-6">
+                    <div className="flex flex-col md:flex-row gap-8">
+                      {/* Left: Pill Image */}
+                      <div className="flex flex-col items-center">
+                        <div className="w-52 h-52 rounded-2xl overflow-hidden bg-muted border border-border shadow-md">
+                          <img
+                            src={selectedImage}
+                            alt="Detected pill"
+                            className="w-full h-full object-contain p-2"
+                          />
+                        </div>
+                        <h3 className="text-2xl font-display font-bold text-primary mt-4 text-center">{result.name}</h3>
+                        <span className={`mt-2 px-4 py-1 rounded-full text-sm font-medium ${
                           result.confidence >= 0.8 
                             ? "bg-green-500/20 text-green-600" 
                             : result.confidence >= 0.5 
                               ? "bg-yellow-500/20 text-yellow-600" 
-                              : "bg-red-500/20 text-red-600"
+                              : "bg-primary/20 text-primary"
                         }`}>
                           {(result.confidence * 100).toFixed(0)}% Confidence
                         </span>
                       </div>
+
+                      {/* Right: Pill Details */}
+                      <div className="flex-1">
+                        <div className="flex items-start gap-4 p-5 rounded-xl bg-primary/5 border border-primary/20">
+                          <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                            <Stethoscope className="w-6 h-6 text-primary" />
+                          </div>
+                          <div className="space-y-2">
+                            <p className="text-sm"><span className="font-bold text-primary">Drug Class:</span> <span className="text-foreground">{result.drugClass || "Unknown"}</span></p>
+                            <p className="text-sm"><span className="font-bold text-primary">Generic Name:</span> <span className="text-foreground">{result.genericName || "Unknown"}</span></p>
+                            <p className="text-sm"><span className="font-bold text-primary">Brand Name:</span> <span className="text-foreground">{result.brandName || "Unknown"}</span></p>
+                            <p className="text-sm"><span className="font-bold text-primary">Color:</span> <span className="text-foreground">{result.color || "Unknown"}</span></p>
+                            <p className="text-sm"><span className="font-bold text-primary">Shape:</span> <span className="text-foreground">{result.shape || "Unknown"}</span></p>
+                            <p className="text-sm"><span className="font-bold text-primary">Imprint:</span> <span className="text-foreground">{result.imprint || "Unknown"}</span></p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
+                  </CardContent>
+                </Card>
 
-                    {/* Pill Details */}
-                    <div className="flex-1 space-y-4">
-                      {/* Info Card */}
-                      <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
-                        <div className="flex items-start gap-3">
-                          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                            <Stethoscope className="w-5 h-5 text-primary" />
-                          </div>
-                          <div className="space-y-2 text-sm">
-                            <p><span className="font-semibold text-primary">Drug Class:</span> {result.drugClass || "N/A"}</p>
-                            <p><span className="font-semibold text-primary">Generic Name:</span> {result.genericName || "N/A"}</p>
-                            <p><span className="font-semibold text-primary">Brand Name:</span> {result.brandName || "N/A"}</p>
-                            <p><span className="font-semibold text-primary">Color:</span> {result.color}</p>
-                            <p><span className="font-semibold text-primary">Shape:</span> {result.shape}</p>
-                            <p><span className="font-semibold text-primary">Imprint:</span> {result.imprint || "N/A"}</p>
-                          </div>
-                        </div>
+                {/* Uses Card */}
+                <Card className="border-border shadow-md">
+                  <CardContent className="p-5">
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 rounded-full bg-secondary/30 flex items-center justify-center flex-shrink-0">
+                        <FileText className="w-6 h-6 text-secondary" />
                       </div>
-
-                      {/* Usage Card */}
-                      <div className="p-4 rounded-xl bg-muted/50 border border-border">
-                        <div className="flex items-start gap-3">
-                          <div className="w-10 h-10 rounded-full bg-secondary/50 flex items-center justify-center flex-shrink-0">
-                            <FileText className="w-5 h-5 text-secondary-foreground" />
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Uses</p>
-                            <p className="text-sm text-foreground">{result.usage}</p>
-                          </div>
-                        </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Uses</p>
+                        <p className="text-foreground">{result.usage || "Cannot be determined without identification."}</p>
                       </div>
-
-                      {/* Description */}
-                      <div className="p-4 rounded-xl bg-muted/30 border border-border">
-                        <div className="flex items-start gap-3">
-                          <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                            <Info className="w-5 h-5 text-muted-foreground" />
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Description</p>
-                            <p className="text-sm text-foreground">{result.description}</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Warnings */}
-                      {result.warnings.length > 0 && (
-                        <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/20">
-                          <div className="flex items-start gap-3">
-                            <div className="w-10 h-10 rounded-full bg-destructive/20 flex items-center justify-center flex-shrink-0">
-                              <AlertCircle className="w-5 h-5 text-destructive" />
-                            </div>
-                            <div>
-                              <p className="text-xs text-destructive uppercase tracking-wide mb-1">Important Warnings</p>
-                              <ul className="text-sm space-y-1">
-                                {result.warnings.map((warning, i) => (
-                                  <li key={i} className="flex items-start gap-2">
-                                    <span className="text-destructive">•</span>
-                                    <span>{warning}</span>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          </div>
-                        </div>
-                      )}
                     </div>
-                  </div>
+                  </CardContent>
+                </Card>
 
-                  {/* New Detection Button */}
-                  <div className="mt-8 text-center">
-                    <Button onClick={clearImage} variant="outline" className="px-8">
-                      Detect Another Pill
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                {/* Description Card */}
+                <Card className="border-border shadow-md">
+                  <CardContent className="p-5">
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                        <Info className="w-6 h-6 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Description</p>
+                        <p className="text-foreground">{result.description}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Warnings Card */}
+                {result.warnings && result.warnings.length > 0 && (
+                  <Card className="border-destructive/30 shadow-md bg-destructive/5">
+                    <CardContent className="p-5">
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 rounded-full bg-destructive/20 flex items-center justify-center flex-shrink-0">
+                          <AlertCircle className="w-6 h-6 text-destructive" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-destructive uppercase tracking-wider font-semibold mb-2">Important Warnings</p>
+                          <ul className="space-y-1">
+                            {result.warnings.map((warning, i) => (
+                              <li key={i} className="flex items-start gap-2 text-foreground">
+                                <span className="text-destructive font-bold">•</span>
+                                <span>{warning}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* New Detection Button */}
+                <div className="text-center pt-4">
+                  <Button onClick={clearImage} variant="outline" className="px-8">
+                    Detect Another Pill
+                  </Button>
+                </div>
+              </div>
             )}
           </div>
         </div>
