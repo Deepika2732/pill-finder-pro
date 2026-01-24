@@ -21,6 +21,124 @@ interface PillAnalysisResult {
   warnings: string[];
 }
 
+interface DrugSearchResult {
+  found: boolean;
+  name?: string;
+  genericName?: string;
+  brandName?: string;
+  drugClass?: string;
+  description?: string;
+  usage?: string;
+  warnings?: string[];
+}
+
+// Search Drugs.com using Firecrawl for real-time pill data
+async function searchDrugsDatabase(query: string): Promise<DrugSearchResult> {
+  const firecrawlApiKey = Deno.env.get("FIRECRAWL_API_KEY");
+  if (!firecrawlApiKey) {
+    console.log("FIRECRAWL_API_KEY not configured, skipping database lookup");
+    return { found: false };
+  }
+
+  try {
+    console.log("Searching Drugs.com for:", query);
+    
+    // Search Drugs.com using Firecrawl
+    const searchResponse = await fetch("https://api.firecrawl.dev/v1/search", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${firecrawlApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: `site:drugs.com ${query} pill tablet medication`,
+        limit: 5,
+        scrapeOptions: {
+          formats: ["markdown"],
+        },
+      }),
+    });
+
+    if (!searchResponse.ok) {
+      console.error("Firecrawl search error:", searchResponse.status);
+      return { found: false };
+    }
+
+    const searchData = await searchResponse.json();
+    console.log("Firecrawl search results:", searchData.success, searchData.data?.length || 0, "results");
+
+    if (!searchData.success || !searchData.data || searchData.data.length === 0) {
+      return { found: false };
+    }
+
+    // Extract drug information from the first relevant result
+    const firstResult = searchData.data[0];
+    const markdown = firstResult.markdown || "";
+    const title = firstResult.title || "";
+    const url = firstResult.url || "";
+
+    // Parse the markdown content to extract drug details
+    const result: DrugSearchResult = {
+      found: true,
+      name: title.replace(/ - Drugs\.com.*$/i, "").trim(),
+    };
+
+    // Extract generic name
+    const genericMatch = markdown.match(/Generic\s*[Nn]ame[:\s]*([^\n]+)/i) ||
+                         markdown.match(/\(([A-Za-z]+)\)/);
+    if (genericMatch) {
+      result.genericName = genericMatch[1].trim();
+    }
+
+    // Extract brand names
+    const brandMatch = markdown.match(/Brand\s*[Nn]ames?[:\s]*([^\n]+)/i);
+    if (brandMatch) {
+      result.brandName = brandMatch[1].trim().split(",")[0].trim();
+    }
+
+    // Extract drug class
+    const classMatch = markdown.match(/Drug\s*[Cc]lass[:\s]*([^\n]+)/i) ||
+                       markdown.match(/belongs to.*?class.*?called\s+([^\n.]+)/i);
+    if (classMatch) {
+      result.drugClass = classMatch[1].trim();
+    }
+
+    // Extract usage/what is it used for
+    const usageMatch = markdown.match(/used\s+(?:to\s+)?treat[:\s]*([^\n.]+)/i) ||
+                       markdown.match(/What\s+is\s+.*?\s+used\s+for[?\s]*([^\n]+)/i);
+    if (usageMatch) {
+      result.usage = usageMatch[1].trim();
+    }
+
+    // Extract warnings
+    const warningsSection = markdown.match(/[Ww]arnings?[:\s]*([^#]+?)(?=\n#|\n\n\n|$)/);
+    if (warningsSection) {
+      const warningText = warningsSection[1];
+      const warningsList = warningText
+        .split(/[•\n]/)
+        .filter((w: string) => w.trim().length > 10 && w.trim().length < 200)
+        .slice(0, 5)
+        .map((w: string) => w.trim());
+      if (warningsList.length > 0) {
+        result.warnings = warningsList;
+      }
+    }
+
+    // Extract description
+    const descMatch = markdown.match(/^([^#\n].{50,300})/);
+    if (descMatch) {
+      result.description = descMatch[1].trim();
+    }
+
+    console.log("Drug database lookup result:", result.name);
+    return result;
+
+  } catch (error) {
+    console.error("Error searching drugs database:", error);
+    return { found: false };
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -48,7 +166,7 @@ serve(async (req) => {
 
     console.log("Analyzing pill image with AI...");
 
-    // Call Lovable AI Gateway for pill analysis
+    // Call Lovable AI Gateway for initial pill analysis
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -82,8 +200,10 @@ CRITICAL INSTRUCTIONS FOR PILL IDENTIFICATION:
    - Cough tablets: Often contain Dextromethorphan, Guaifenesin, Pholcodine, or herbal ingredients
    - Cold/Flu tablets: May contain Pseudoephedrine, Phenylephrine, Chlorpheniramine
    - Pain relievers: Paracetamol/Acetaminophen, Aspirin, Ibuprofen
+   - Sleeping tablets: May contain Diphenhydramine, Doxylamine, Melatonin, Zolpidem
 5. Look for brand names on packaging (e.g., Benadryl, Robitussin, Strepsils, Vicks, etc.)
 6. Consider the packaging context, colors, logos, and any visible text.
+7. If the user provides a hint like "sleeping tablet" or "cough tablet", use that to narrow down identification.
 
 CONFIDENCE SCORING FOR PILLS:
 - 0.9-1.0: Exact match with clear imprint or packaging text identified
@@ -185,10 +305,64 @@ READ THE PACKAGING TEXT CAREFULLY - if it says "Cough Tablet" identify it as a c
       };
     }
 
-    // Normalize result so pill images never show empty/N/A fields in the UI
+    // Check if it's a pill and we have a hint or partial identification
     const isNonPill = (result.name || "").trim() === "Not a Pharmaceutical Pill";
+    
+    // If it's a pill, enhance with Drugs.com lookup
+    if (!isNonPill) {
+      // Build search query from hint and AI result
+      const searchTerms: string[] = [];
+      if (hint && typeof hint === "string" && hint.trim()) {
+        searchTerms.push(hint.trim());
+      }
+      if (result.name && !result.name.includes("Unknown") && !result.name.includes("Unconfirmed")) {
+        searchTerms.push(result.name);
+      }
+      if (result.genericName && result.genericName !== "Unconfirmed") {
+        searchTerms.push(result.genericName);
+      }
+      
+      if (searchTerms.length > 0) {
+        const searchQuery = searchTerms.join(" ");
+        console.log("Searching Drugs.com for additional info:", searchQuery);
+        
+        const drugDbResult = await searchDrugsDatabase(searchQuery);
+        
+        if (drugDbResult.found) {
+          console.log("Found in Drugs.com database, enhancing result");
+          
+          // Enhance AI result with database info
+          if (drugDbResult.name) {
+            result.name = drugDbResult.name;
+          }
+          if (drugDbResult.genericName) {
+            result.genericName = drugDbResult.genericName;
+          }
+          if (drugDbResult.brandName) {
+            result.brandName = drugDbResult.brandName;
+          }
+          if (drugDbResult.drugClass) {
+            result.drugClass = drugDbResult.drugClass;
+          }
+          if (drugDbResult.usage) {
+            result.usage = drugDbResult.usage;
+          }
+          if (drugDbResult.description) {
+            result.description = drugDbResult.description;
+          }
+          if (drugDbResult.warnings && drugDbResult.warnings.length > 0) {
+            result.warnings = drugDbResult.warnings;
+          }
+          
+          // Boost confidence since we verified with database
+          result.confidence = Math.min(1, result.confidence + 0.15);
+        }
+      }
+    }
+
+    // Normalize result so pill images never show empty/N/A fields in the UI
     const normalizeString = (v: unknown) => (typeof v === "string" ? v.trim() : "");
-    const isNA = (s: string) => !s || /^(n\/?a|na|none)$/i.test(s);
+    const isNA = (s: string) => !s || /^(n\/?a|na|none|unknown)$/i.test(s);
 
     if (!isNonPill) {
       const drugClass = normalizeString(result.drugClass);
