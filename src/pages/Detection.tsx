@@ -1,9 +1,7 @@
 import { useState, useRef, useCallback } from "react";
-import { Camera, X, Loader2, Pill, AlertCircle, CheckCircle2, Info, Stethoscope, FileText } from "lucide-react";
+import { Camera, X, Loader2, AlertCircle, Info, Stethoscope, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -39,7 +37,6 @@ export default function Detection() {
   const [result, setResult] = useState<DetectionResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showDialog, setShowDialog] = useState(false);
-  const [userHint, setUserHint] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -69,7 +66,6 @@ export default function Detection() {
       setResult(null);
       setError(null);
       setIsSubmitted(false);
-      setUserHint("");
     };
     reader.readAsDataURL(file);
   }, [toast]);
@@ -80,7 +76,6 @@ export default function Detection() {
     setResult(null);
     setError(null);
     setIsSubmitted(false);
-    setUserHint("");
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -101,7 +96,7 @@ export default function Detection() {
 
     try {
       const { data, error: fnError } = await supabase.functions.invoke("analyze-pill", {
-        body: { image: selectedImage, hint: userHint.trim() || null },
+        body: { image: selectedImage },
       });
 
       if (fnError) throw fnError;
@@ -207,24 +202,6 @@ export default function Detection() {
                         className="max-w-xs h-48 object-contain rounded-xl bg-muted border border-border"
                       />
                     </div>
-                  </div>
-                )}
-
-                {/* Optional hint */}
-                {selectedImage && (
-                  <div className="max-w-md mx-auto space-y-2">
-                    <Label htmlFor="pill-hint" className="text-sm text-foreground">
-                      Optional: what is this pill? (e.g., “cough tablet”, “sleeping pill”)
-                    </Label>
-                    <Input
-                      id="pill-hint"
-                      value={userHint}
-                      onChange={(e) => setUserHint(e.target.value)}
-                      placeholder="Type your guess to improve accuracy"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Tip: Upload the blister/box text for best accuracy.
-                    </p>
                   </div>
                 )}
 
