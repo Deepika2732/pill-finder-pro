@@ -20,6 +20,7 @@ interface PillAnalysisResult {
   usage: string;
   warnings: string[];
 }
+
 // Helper function to strip all markdown formatting and URLs
 const cleanText = (text: string): string => {
   if (!text || typeof text !== "string") return "";
@@ -42,6 +43,82 @@ const cleanText = (text: string): string => {
     .trim();
 };
 
+const systemPrompt = `You are an expert pharmaceutical pill identification AI trained on the Drugs.com pill identifier database and pharmaceutical references worldwide.
+
+IMPORTANT: Images will be from Google Images or Drugs.com website. These often include:
+- Pill identifier pages showing the pill with drug name, imprint codes, and details
+- Product images with packaging showing brand/generic names
+- Close-up photos of pills with visible imprints and markings
+
+YOUR TASK: Accurately identify the medication shown in the image.
+
+STEP 1 - READ ALL TEXT IN THE IMAGE:
+- Look for drug names displayed on the page (e.g., "Lisinopril 10mg", "Metformin 500mg")
+- Read imprint codes visible on the pill (letters, numbers like "M366", "IP 204", "L484")
+- Note any brand names, manufacturer names, or NDC numbers visible
+- Check for dosage information (mg, mcg, etc.)
+
+STEP 2 - ANALYZE PHYSICAL CHARACTERISTICS:
+- Color: White, Blue, Pink, Yellow, Orange, Red, Green, Purple, Brown, Tan, Peach, etc.
+- Shape: Round, Oval, Oblong, Capsule, Diamond, Heart, Triangle, Rectangle, etc.
+- Coating: Film-coated, Sugar-coated, Enteric-coated, or uncoated
+- Score lines: Single score, Double score, or no score
+- Size: Small, Medium, Large (estimate in mm if possible)
+
+STEP 3 - IF IT'S NOT A PILL:
+If the image shows food, fruit, candy, or non-pharmaceutical items, return confidence 1.0 with name "Not a Pharmaceutical Pill" and describe the actual object.
+
+COMPREHENSIVE DRUG DATABASE KNOWLEDGE:
+You have knowledge of thousands of medications including:
+- Analgesics: Acetaminophen/Paracetamol, Ibuprofen, Naproxen, Aspirin, Tramadol, Hydrocodone, Oxycodone
+- Antibiotics: Amoxicillin, Azithromycin, Ciprofloxacin, Doxycycline, Cephalexin, Metronidazole, Augmentin
+- Cardiovascular: Lisinopril, Amlodipine, Metoprolol, Losartan, Atenolol, Carvedilol, Hydrochlorothiazide
+- Diabetes: Metformin, Glipizide, Glimepiride, Sitagliptin, Pioglitazone
+- Gastrointestinal: Omeprazole, Pantoprazole, Esomeprazole, Famotidine, Ranitidine
+- CNS/Mental Health: Sertraline, Fluoxetine, Escitalopram, Alprazolam, Lorazepam, Clonazepam, Trazodone
+- Sleep/Sedatives: Zolpidem, Diphenhydramine, Doxylamine, Melatonin, Temazepam
+- Allergy: Loratadine, Cetirizine, Fexofenadine, Diphenhydramine, Chlorpheniramine
+- Thyroid: Levothyroxine, Liothyronine, Synthroid, Armour Thyroid
+- Cholesterol: Atorvastatin, Simvastatin, Rosuvastatin, Pravastatin, Lovastatin
+- Steroids: Prednisone, Prednisolone, Dexamethasone, Methylprednisolone
+- Muscle Relaxants: Cyclobenzaprine, Methocarbamol, Baclofen, Tizanidine
+- Anticonvulsants: Gabapentin, Pregabalin, Topiramate, Lamotrigine, Carbamazepine
+- Respiratory: Montelukast, Albuterol, Fluticasone, Benzonatate
+- Vitamins: Vitamin D, B12, Folic Acid, Iron, Calcium, Multivitamins
+
+IMPRINT CODE MATCHING:
+Common manufacturer imprints to recognize:
+- "M" in a box = Mylan
+- "IP" = Amneal/Impax
+- "L" = Various generics (L484 = Acetaminophen 500mg)
+- "Watson" or "W" = Watson/Actavis
+- "Par" = Par Pharmaceutical
+- "Teva" = Teva Pharmaceutical
+- "D" on blue round pill = Doxylamine (Unisom)
+- Numbers often indicate dosage (e.g., "10" for 10mg, "500" for 500mg)
+
+CONFIDENCE SCORING:
+- 0.95-1.0: Drug name visible in image text OR exact imprint match from database
+- 0.85-0.94: Clear imprint readable, confident match to known medication
+- 0.70-0.84: Partial imprint or strong visual match to known pill
+- 0.50-0.69: Good visual characteristics match, likely identification
+- 0.30-0.49: Educated guess based on appearance
+
+RESPONSE FORMAT - Plain text only, NO markdown, NO URLs, NO special formatting:
+{
+  "name": "Drug Name with Dosage",
+  "genericName": "Generic name only",
+  "brandName": "Brand name if known",
+  "drugClass": "Therapeutic class",
+  "confidence": 0.85,
+  "description": "Brief description of the medication and its purpose",
+  "color": "Exact color",
+  "shape": "Exact shape",
+  "imprint": "Visible imprint code",
+  "usage": "What this medication is used to treat",
+  "warnings": ["Important warning 1", "Important warning 2"]
+}`;
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -49,7 +126,7 @@ serve(async (req) => {
   }
 
   try {
-    const { image, hint } = await req.json();
+    const { image } = await req.json();
 
     if (!image) {
       return new Response(
@@ -69,7 +146,7 @@ serve(async (req) => {
 
     console.log("Analyzing pill image with AI...");
 
-    // Call Lovable AI Gateway for initial pill analysis
+    // Call Lovable AI Gateway for pill analysis
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -81,76 +158,14 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are an expert pharmaceutical identification AI with extensive knowledge of ALL prescription and over-the-counter medications worldwide, including drugs listed on Drugs.com, RxList, WebMD, and international pharmacopeias.
-
-OPTIONAL USER CONTEXT:
-The user may provide a short hint (example: "blood pressure", "antibiotic", "vitamin"). Use it as additional signal, but do not ignore what the image shows. If the hint conflicts with the image, prefer the image.
-
-STEP 1 - DETERMINE IF IT'S A PILL:
-First, determine if the image contains a pharmaceutical pill/tablet/capsule. 
-
-IF IT'S NOT A PILL (fruit, food, random object, animal, etc.):
-Return with confidence: 1.0 (100% confident it's NOT a pill) and set name to "Not a Pharmaceutical Pill", all drug fields to "N/A", and describe what it actually is.
-
-IF IT IS A PILL:
-Your goal is to ALWAYS identify the pill to the best of your ability from ANY drug category.
-
-COMPREHENSIVE DRUG CATEGORIES TO CONSIDER:
-- Pain relievers/Analgesics: Paracetamol, Ibuprofen, Aspirin, Naproxen, Tramadol, Codeine
-- Antibiotics: Amoxicillin, Azithromycin, Ciprofloxacin, Doxycycline, Metronidazole
-- Cardiovascular: Amlodipine, Atenolol, Lisinopril, Losartan, Metoprolol, Aspirin
-- Diabetes: Metformin, Glimepiride, Sitagliptin, Gliclazide
-- Gastrointestinal: Omeprazole, Pantoprazole, Ranitidine, Domperidone
-- Respiratory/Cough/Cold: Dextromethorphan, Guaifenesin, Pseudoephedrine, Cetirizine
-- Sleep aids/Sedatives: Zolpidem, Diphenhydramine, Melatonin, Doxylamine
-- Antidepressants/Anxiety: Sertraline, Fluoxetine, Escitalopram, Alprazolam
-- Vitamins/Supplements: Vitamin C, D, B12, Calcium, Iron, Multivitamins, Folic Acid
-- Antihistamines/Allergy: Loratadine, Cetirizine, Fexofenadine, Chlorpheniramine
-- Steroids: Prednisolone, Dexamethasone, Hydrocortisone
-- Thyroid: Levothyroxine, Thyroxine
-- Cholesterol: Atorvastatin, Rosuvastatin, Simvastatin
-- Antifungals: Fluconazole, Ketoconazole, Clotrimazole
-- Muscle relaxants: Cyclobenzaprine, Methocarbamol, Baclofen
-- Anticonvulsants: Gabapentin, Pregabalin, Carbamazepine
-- And ALL other drug classes
-
-CRITICAL INSTRUCTIONS FOR PILL IDENTIFICATION:
-1. NEVER return "Unknown" for all fields. Always make your best educated guess.
-2. READ ANY VISIBLE TEXT on packaging - brand names, drug names, dosages, manufacturer logos
-3. Match pills by color, shape, size, coating, score lines, and any visible markings/imprints
-4. Use the user's hint to narrow down identification within that category
-5. Consider packaging context, blister design, box text, and any visible information
-6. Reference your knowledge of common pill appearances from pharmaceutical databases
-
-CONFIDENCE SCORING:
-- 0.9-1.0: Exact match with clear imprint or packaging text identified
-- 0.7-0.89: Strong match based on visible packaging info or visual characteristics
-- 0.5-0.69: Likely match, medication type identified from context
-- 0.3-0.49: Educated guess based on appearance, needs verification
-
-IMPORTANT: You must respond with ONLY a valid JSON object in this exact format.
-DO NOT include any markdown formatting (no **, no *, no links, no URLs).
-All text values must be plain text only.
-{
-  "name": "Full drug name with dosage if visible",
-  "genericName": "Generic pharmaceutical name",
-  "brandName": "Brand name if visible",
-  "drugClass": "Drug classification",
-  "confidence": 0.75,
-  "description": "Detailed description of the medication",
-  "color": "Observed color",
-  "shape": "Observed shape",
-  "imprint": "Any visible markings",
-  "usage": "Medical uses and indications",
-  "warnings": ["Array of important warnings"]
-}`
+            content: systemPrompt
           },
           {
             role: "user",
             content: [
               {
                 type: "text",
-                text: `Analyze this image carefully. First determine if it contains a pharmaceutical pill/tablet or something else entirely (like fruit, food, or other objects). If it's NOT a pill, return 100% confidence that it's not a pharmaceutical product. If it IS a pill, READ ANY TEXT ON THE PACKAGING to identify the medication type (e.g., if packaging says 'Cough Tablet' or 'Cold & Flu', identify it as that type of medication). Look at color, shape, size, any visible imprints, score lines, or packaging details. Identify the most likely medication based on ALL visual characteristics including packaging text.\n\nUser hint (optional): ${typeof hint === "string" && hint.trim() ? hint.trim() : "(none)"}`
+                text: "Identify this pill. Read any text visible in the image including drug names, imprints, and packaging text. Analyze the color, shape, and markings. Return the identification in JSON format with plain text only - no markdown, no URLs, no special formatting."
               },
               {
                 type: "image_url",
@@ -162,7 +177,7 @@ All text values must be plain text only.
           }
         ],
         max_tokens: 1500,
-        temperature: 0.3,
+        temperature: 0.2,
       }),
     });
 
@@ -198,23 +213,21 @@ All text values must be plain text only.
       result = JSON.parse(cleanContent);
     } catch (parseError) {
       console.error("Failed to parse AI response:", content);
-      // Provide a better fallback result with educated guesses
+      // Provide a fallback result
       result = {
-        name: "Likely Generic Analgesic/Supplement",
-        genericName: "Possibly Paracetamol, Aspirin, or Calcium",
-        brandName: "Common OTC medication",
-        drugClass: "Analgesic/Supplement (Unconfirmed)",
+        name: "Unable to Parse Response",
+        genericName: "Unconfirmed",
+        brandName: "Unconfirmed",
+        drugClass: "Unconfirmed",
         confidence: 0.35,
-        description: "Based on the appearance, this appears to be a common over-the-counter medication or supplement. The white, round tablet is consistent with many analgesics, antacids, or vitamin supplements. Without clear imprints, exact identification requires pharmacist verification.",
-        color: "White",
-        shape: "Round",
-        imprint: "No clear imprint visible - may have score line",
-        usage: "If this is an analgesic: Used for pain relief and fever reduction. If a supplement: Supports general health. Please verify with a pharmacist before use.",
+        description: "The AI was unable to properly analyze this image. Please try again with a clearer image.",
+        color: "Unknown",
+        shape: "Unknown",
+        imprint: "Unable to read",
+        usage: "Please upload a clearer image of the pill for accurate identification.",
         warnings: [
-          "Do not take without proper identification",
-          "Consult a pharmacist or healthcare provider to verify this medication",
-          "Never take medication that cannot be positively identified",
-          "Keep all medications away from children"
+          "Do not take medication without proper identification",
+          "Consult a pharmacist or healthcare provider to verify"
         ],
       };
     }
@@ -245,8 +258,7 @@ All text values must be plain text only.
       if (isNA(result.brandName)) result.brandName = "Unconfirmed";
       if (isNA(result.imprint)) result.imprint = "No visible imprint";
       if (isNA(result.usage)) {
-        result.usage =
-          "Unable to confirm exact use without imprint/packaging. Upload the blister/box text for a more accurate match.";
+        result.usage = "Unable to confirm exact use. Please verify with a pharmacist.";
       }
 
       if (!Array.isArray(result.warnings) || result.warnings.length === 0) {
