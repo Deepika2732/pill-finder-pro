@@ -20,6 +20,27 @@ interface PillAnalysisResult {
   usage: string;
   warnings: string[];
 }
+// Helper function to strip all markdown formatting and URLs
+const cleanText = (text: string): string => {
+  if (!text || typeof text !== "string") return "";
+  return text
+    // Remove markdown bold/italic
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/\*([^*]+)\*/g, "$1")
+    .replace(/__([^_]+)__/g, "$1")
+    .replace(/_([^_]+)_/g, "$1")
+    // Remove markdown links [text](url)
+    .replace(/\[([^\]]*)\]\([^)]+\)/g, "$1")
+    // Remove raw URLs
+    .replace(/https?:\/\/[^\s\)]+/g, "")
+    // Remove parentheses that contained URLs
+    .replace(/\(\s*\)/g, "")
+    // Remove backslash escapes
+    .replace(/\\([[\]()_*])/g, "$1")
+    // Clean up extra whitespace
+    .replace(/\s+/g, " ")
+    .trim();
+};
 
 serve(async (req) => {
   // Handle CORS preflight
@@ -107,7 +128,9 @@ CONFIDENCE SCORING:
 - 0.5-0.69: Likely match, medication type identified from context
 - 0.3-0.49: Educated guess based on appearance, needs verification
 
-IMPORTANT: You must respond with ONLY a valid JSON object in this exact format, no markdown:
+IMPORTANT: You must respond with ONLY a valid JSON object in this exact format.
+DO NOT include any markdown formatting (no **, no *, no links, no URLs).
+All text values must be plain text only.
 {
   "name": "Full drug name with dosage if visible",
   "genericName": "Generic pharmaceutical name",
@@ -199,22 +222,29 @@ IMPORTANT: You must respond with ONLY a valid JSON object in this exact format, 
     // Check if it's a non-pill item
     const isNonPill = (result.name || "").trim() === "Not a Pharmaceutical Pill";
 
+    // Clean all text fields to remove markdown formatting and URLs
+    result.name = cleanText(result.name);
+    result.genericName = cleanText(result.genericName);
+    result.brandName = cleanText(result.brandName);
+    result.drugClass = cleanText(result.drugClass);
+    result.description = cleanText(result.description);
+    result.color = cleanText(result.color);
+    result.shape = cleanText(result.shape);
+    result.imprint = cleanText(result.imprint);
+    result.usage = cleanText(result.usage);
+    if (Array.isArray(result.warnings)) {
+      result.warnings = result.warnings.map(w => cleanText(w));
+    }
+
     // Normalize result so pill images never show empty/N/A fields in the UI
-    const normalizeString = (v: unknown) => (typeof v === "string" ? v.trim() : "");
     const isNA = (s: string) => !s || /^(n\/?a|na|none|unknown)$/i.test(s);
 
     if (!isNonPill) {
-      const drugClass = normalizeString(result.drugClass);
-      const genericName = normalizeString(result.genericName);
-      const brandName = normalizeString(result.brandName);
-      const imprint = normalizeString(result.imprint);
-      const usage = normalizeString(result.usage);
-
-      if (isNA(drugClass)) result.drugClass = "Unconfirmed";
-      if (isNA(genericName)) result.genericName = "Unconfirmed";
-      if (isNA(brandName)) result.brandName = "Unconfirmed";
-      if (isNA(imprint)) result.imprint = "No visible imprint";
-      if (isNA(usage)) {
+      if (isNA(result.drugClass)) result.drugClass = "Unconfirmed";
+      if (isNA(result.genericName)) result.genericName = "Unconfirmed";
+      if (isNA(result.brandName)) result.brandName = "Unconfirmed";
+      if (isNA(result.imprint)) result.imprint = "No visible imprint";
+      if (isNA(result.usage)) {
         result.usage =
           "Unable to confirm exact use without imprint/packaging. Upload the blister/box text for a more accurate match.";
       }
