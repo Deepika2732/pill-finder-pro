@@ -71,43 +71,57 @@ async function searchDrugsDatabase(query: string): Promise<DrugSearchResult> {
       return { found: false };
     }
 
+    // Helper function to strip URLs and clean text
+    const stripUrls = (text: string): string => {
+      if (!text) return "";
+      return text
+        // Remove markdown links [text](url)
+        .replace(/\[([^\]]*)\]\([^)]+\)/g, "$1")
+        // Remove raw URLs
+        .replace(/https?:\/\/[^\s\)]+/g, "")
+        // Remove parentheses that contained URLs
+        .replace(/\(\s*\)/g, "")
+        // Clean up extra whitespace
+        .replace(/\s+/g, " ")
+        .trim();
+    };
+
     // Extract drug information from the first relevant result
     const firstResult = searchData.data[0];
     const markdown = firstResult.markdown || "";
     const title = firstResult.title || "";
-    const url = firstResult.url || "";
 
     // Parse the markdown content to extract drug details
     const result: DrugSearchResult = {
       found: true,
-      name: title.replace(/ - Drugs\.com.*$/i, "").trim(),
+      name: stripUrls(title.replace(/ - Drugs\.com.*$/i, "").trim()),
     };
 
     // Extract generic name
     const genericMatch = markdown.match(/Generic\s*[Nn]ame[:\s]*([^\n]+)/i) ||
                          markdown.match(/\(([A-Za-z]+)\)/);
     if (genericMatch) {
-      result.genericName = genericMatch[1].trim();
+      result.genericName = stripUrls(genericMatch[1].trim());
     }
 
     // Extract brand names
     const brandMatch = markdown.match(/Brand\s*[Nn]ames?[:\s]*([^\n]+)/i);
     if (brandMatch) {
-      result.brandName = brandMatch[1].trim().split(",")[0].trim();
+      result.brandName = stripUrls(brandMatch[1].trim().split(",")[0].trim());
     }
 
-    // Extract drug class
+    // Extract drug class - clean up markdown and URLs
     const classMatch = markdown.match(/Drug\s*[Cc]lass[:\s]*([^\n]+)/i) ||
                        markdown.match(/belongs to.*?class.*?called\s+([^\n.]+)/i);
     if (classMatch) {
-      result.drugClass = classMatch[1].trim();
+      result.drugClass = stripUrls(classMatch[1].trim());
     }
 
     // Extract usage/what is it used for
     const usageMatch = markdown.match(/used\s+(?:to\s+)?treat[:\s]*([^\n.]+)/i) ||
                        markdown.match(/What\s+is\s+.*?\s+used\s+for[?\s]*([^\n]+)/i);
     if (usageMatch) {
-      result.usage = usageMatch[1].trim();
+      result.usage = stripUrls(usageMatch[1].trim());
     }
 
     // Extract warnings
@@ -118,7 +132,7 @@ async function searchDrugsDatabase(query: string): Promise<DrugSearchResult> {
         .split(/[•\n]/)
         .filter((w: string) => w.trim().length > 10 && w.trim().length < 200)
         .slice(0, 5)
-        .map((w: string) => w.trim());
+        .map((w: string) => stripUrls(w.trim()));
       if (warningsList.length > 0) {
         result.warnings = warningsList;
       }
@@ -127,7 +141,7 @@ async function searchDrugsDatabase(query: string): Promise<DrugSearchResult> {
     // Extract description
     const descMatch = markdown.match(/^([^#\n].{50,300})/);
     if (descMatch) {
-      result.description = descMatch[1].trim();
+      result.description = stripUrls(descMatch[1].trim());
     }
 
     console.log("Drug database lookup result:", result.name);
