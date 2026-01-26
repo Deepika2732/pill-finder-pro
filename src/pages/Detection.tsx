@@ -281,7 +281,6 @@ export default function Detection() {
                             <p className="text-sm"><span className="font-bold text-primary">Brand Name:</span> <span className="text-foreground">{isNonPill ? (result.brandName || "N/A") : displayValue(result.brandName)}</span></p>
                             <p className="text-sm"><span className="font-bold text-primary">Color:</span> <span className="text-foreground">{displayValue(result.color)}</span></p>
                             <p className="text-sm"><span className="font-bold text-primary">Shape:</span> <span className="text-foreground">{displayValue(result.shape)}</span></p>
-                            <p className="text-sm"><span className="font-bold text-primary">Imprint:</span> <span className="text-foreground">{displayValue(result.imprint)}</span></p>
                           </div>
                         </div>
                       </div>
