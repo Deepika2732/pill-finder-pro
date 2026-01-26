@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { name: "HOME", path: "/home", icon: Home },
-  { name: "HISTORY", path: "/history", icon: History },
   { name: "LOGIN", path: "/", icon: LogIn },
+  { name: "HOME", path: "/home", icon: Home },
   { name: "PREVIEW", path: "/detection", icon: ScanSearch },
+  { name: "HISTORY", path: "/history", icon: History },
 ];
 
 export function Navbar() {
