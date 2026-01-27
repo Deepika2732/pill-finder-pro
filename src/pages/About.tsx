@@ -41,7 +41,7 @@ export default function About() {
               About <span className="gradient-text">PillDetect</span>
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              AI-powered pill identification technology designed to enhance medication safety
+              Pill identification technology designed to enhance medication safety
               and help prevent dangerous drug mix-ups.
             </p>
           </div>
@@ -137,7 +137,7 @@ export default function About() {
 
           {/* Footer */}
           <div className="mt-12 text-center text-muted-foreground">
-            <p>© 2024 PillDetect. Built with AI for medication safety.</p>
+            <p>© 2026 PillDetect. Built for medication safety.</p>
           </div>
         </div>
       </div>

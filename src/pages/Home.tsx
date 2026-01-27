@@ -72,7 +72,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="py-8 border-t border-border bg-muted/30">
         <div className="container mx-auto px-4 text-center text-muted-foreground">
-          <p>© 2024 PillDetect. AI-powered pill identification for safety.</p>
+          <p>© 2026 PillDetect. Pill identification for safety.</p>
         </div>
       </footer>
     </div>
