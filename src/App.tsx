@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import Home from "./pages/Home";
 import Detection from "./pages/Detection";
+import Train from "./pages/Train";
 import History from "./pages/History";
 import About from "./pages/About";
 import Login from "./pages/Login";
@@ -23,6 +24,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Login />} />
             <Route path="/home" element={<Home />} />
+            <Route path="/train" element={<Train />} />
             <Route path="/detection" element={<Detection />} />
             <Route path="/history" element={<History />} />
             <Route path="/about" element={<About />} />
