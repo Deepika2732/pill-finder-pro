@@ -4,98 +4,100 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
-/* Pill Detection - Medical/Healthcare Theme */
+/* PillDetect - Professional Medical/Healthcare Theme */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 210 40% 15%;
+    --background: 180 20% 98%;
+    --foreground: 200 30% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 210 40% 15%;
+    --card-foreground: 200 30% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 210 40% 15%;
+    --popover-foreground: 200 30% 15%;
 
-    /* Orange/Coral accent - matching reference */
-    --primary: 20 90% 48%;
+    /* Teal primary - medical professional */
+    --primary: 174 72% 40%;
     --primary-foreground: 0 0% 100%;
 
-    /* Blue buttons */
-    --secondary: 210 70% 50%;
+    /* Deep teal secondary */
+    --secondary: 180 60% 30%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 210 20% 96%;
-    --muted-foreground: 210 15% 45%;
+    --muted: 180 15% 94%;
+    --muted-foreground: 200 15% 45%;
 
-    /* Emerald/Green for Recognize button */
-    --accent: 160 84% 39%;
+    /* Teal accent */
+    --accent: 174 60% 45%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 210 20% 88%;
-    --input: 210 20% 88%;
-    --ring: 20 90% 48%;
+    --border: 180 15% 85%;
+    --input: 180 15% 85%;
+    --ring: 174 72% 40%;
 
     --radius: 0.5rem;
 
-    /* Custom theme tokens */
-    --orange-accent: 20 90% 48%;
-    --blue-button: 210 70% 50%;
-    --green-button: 160 84% 39%;
-    --glass-bg: 0 0% 100% / 0.8;
-    --shadow-soft: 0 4px 20px -4px hsl(210 40% 15% / 0.1);
+    /* Custom medical theme tokens */
+    --teal-primary: 174 72% 40%;
+    --teal-dark: 180 60% 30%;
+    --teal-light: 174 60% 90%;
+    --success: 160 84% 39%;
+    --glass-bg: 0 0% 100% / 0.9;
+    --shadow-medical: 0 4px 20px -4px hsl(180 30% 30% / 0.12);
 
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 210 40% 15%;
-    --sidebar-primary: 20 90% 48%;
+    --sidebar-foreground: 200 30% 15%;
+    --sidebar-primary: 174 72% 40%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 20 90% 95%;
-    --sidebar-accent-foreground: 20 90% 30%;
-    --sidebar-border: 210 20% 88%;
-    --sidebar-ring: 20 90% 48%;
+    --sidebar-accent: 174 60% 95%;
+    --sidebar-accent-foreground: 174 72% 30%;
+    --sidebar-border: 180 15% 85%;
+    --sidebar-ring: 174 72% 40%;
   }
 
   .dark {
-    --background: 210 40% 8%;
-    --foreground: 200 20% 95%;
+    --background: 200 30% 8%;
+    --foreground: 180 20% 95%;
 
-    --card: 210 35% 12%;
-    --card-foreground: 200 20% 95%;
+    --card: 200 25% 12%;
+    --card-foreground: 180 20% 95%;
 
-    --primary: 20 90% 55%;
+    --primary: 174 72% 50%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 70% 55%;
+    --secondary: 180 50% 40%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 210 30% 15%;
-    --muted-foreground: 200 15% 60%;
+    --muted: 200 25% 15%;
+    --muted-foreground: 180 15% 60%;
 
-    --accent: 160 84% 45%;
+    --accent: 174 60% 50%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 210 30% 20%;
-    --input: 210 30% 20%;
-    --ring: 20 90% 55%;
+    --border: 200 25% 20%;
+    --input: 200 25% 20%;
+    --ring: 174 72% 50%;
 
-    --orange-accent: 20 90% 55%;
-    --blue-button: 210 70% 55%;
-    --green-button: 160 84% 45%;
+    --teal-primary: 174 72% 50%;
+    --teal-dark: 180 50% 40%;
+    --teal-light: 174 40% 20%;
+    --success: 160 84% 45%;
 
-    --sidebar-background: 210 35% 10%;
-    --sidebar-foreground: 200 20% 95%;
-    --sidebar-primary: 20 90% 55%;
+    --sidebar-background: 200 25% 10%;
+    --sidebar-foreground: 180 20% 95%;
+    --sidebar-primary: 174 72% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 20 50% 18%;
-    --sidebar-accent-foreground: 20 90% 80%;
-    --sidebar-border: 210 30% 20%;
-    --sidebar-ring: 20 90% 55%;
+    --sidebar-accent: 174 40% 18%;
+    --sidebar-accent-foreground: 174 72% 80%;
+    --sidebar-border: 200 25% 20%;
+    --sidebar-ring: 174 72% 50%;
   }
 }
 
@@ -115,27 +117,31 @@
 
 @layer utilities {
   .glass {
-    @apply bg-white/80 backdrop-blur-xl border border-white/20;
+    @apply bg-white/90 backdrop-blur-xl border border-white/30;
   }
 
   .glass-card {
-    @apply bg-white/90 backdrop-blur-xl border border-border/50 shadow-lg;
+    @apply bg-white/95 backdrop-blur-xl border border-border/50 shadow-lg;
   }
 
   .gradient-text {
-    @apply text-primary;
+    @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
   }
 
   .gradient-bg {
-    @apply bg-secondary;
+    @apply bg-gradient-to-r from-primary to-accent;
   }
 
   .gradient-bg-subtle {
-    @apply bg-secondary/10;
+    @apply bg-gradient-to-r from-primary/10 to-accent/10;
+  }
+
+  .medical-card {
+    @apply bg-card border border-border rounded-xl shadow-sm hover:shadow-md transition-shadow;
   }
 
   .glow {
-    box-shadow: 0 0 20px hsl(var(--secondary) / 0.3);
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.25);
   }
 
   .animate-float {

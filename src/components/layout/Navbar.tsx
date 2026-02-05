@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, Pill, Home, ScanSearch, History, LogIn } from "lucide-react";
+import { Menu, X, Pill, Home, ScanSearch, History, LogIn, GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { name: "LOGIN", path: "/", icon: LogIn },
   { name: "HOME", path: "/home", icon: Home },
-  { name: "PREVIEW", path: "/detection", icon: ScanSearch },
+  { name: "TRAIN", path: "/train", icon: GraduationCap },
+  { name: "IDENTIFY", path: "/detection", icon: ScanSearch },
   { name: "HISTORY", path: "/history", icon: History },
 ];
 

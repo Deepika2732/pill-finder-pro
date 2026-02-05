@@ -56,6 +56,54 @@ export type Database = {
         }
         Relationships: []
       }
+      pills: {
+        Row: {
+          colour: string | null
+          created_at: string
+          description: string | null
+          dosage: string | null
+          drug_class: string | null
+          generic_name: string
+          id: string
+          image_url: string | null
+          shape: string | null
+          size: string | null
+          updated_at: string
+          uses: string | null
+          warnings: string | null
+        }
+        Insert: {
+          colour?: string | null
+          created_at?: string
+          description?: string | null
+          dosage?: string | null
+          drug_class?: string | null
+          generic_name: string
+          id?: string
+          image_url?: string | null
+          shape?: string | null
+          size?: string | null
+          updated_at?: string
+          uses?: string | null
+          warnings?: string | null
+        }
+        Update: {
+          colour?: string | null
+          created_at?: string
+          description?: string | null
+          dosage?: string | null
+          drug_class?: string | null
+          generic_name?: string
+          id?: string
+          image_url?: string | null
+          shape?: string | null
+          size?: string | null
+          updated_at?: string
+          uses?: string | null
+          warnings?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
