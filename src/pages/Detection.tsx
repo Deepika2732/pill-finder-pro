@@ -1,9 +1,19 @@
 import { useState, useRef } from "react";
-import { Camera, Upload, Loader2, AlertCircle, Pill, Info, ShieldAlert, FileText, Stethoscope } from "lucide-react";
+import { Loader2, AlertCircle, Pill, Info, ShieldAlert, FileText, Stethoscope, Camera } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import heroPills from "@/assets/hero-pills.jpg";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface PillResult {
   name: string;
@@ -24,6 +34,8 @@ export default function Detection() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<PillResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showSubmittedDialog, setShowSubmittedDialog] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -43,9 +55,16 @@ export default function Detection() {
         setSelectedImage(e.target?.result as string);
         setResult(null);
         setError(null);
+        setIsSubmitted(false);
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleSubmit = () => {
+    if (!selectedImage) return;
+    setShowSubmittedDialog(true);
+    setIsSubmitted(true);
   };
 
   const analyzePill = async () => {
@@ -76,6 +95,7 @@ export default function Detection() {
     setSelectedImage(null);
     setResult(null);
     setError(null);
+    setIsSubmitted(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -88,77 +108,105 @@ export default function Detection() {
     );
   };
 
+  // Determine hero title
+  const heroTitle = result ? "Result" : "Upload Image";
+
   return (
-    <div className="min-h-screen py-12">
-      <div className="container mx-auto px-4">
+    <div className="min-h-screen bg-background">
+      {/* Hero Section */}
+      <section className="relative h-[35vh] min-h-[250px] flex items-center justify-start overflow-hidden">
+        <div className="absolute inset-0">
+          <img src={heroPills} alt="Pills background" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-black/30" />
+        </div>
+        <div className="relative z-10 ml-8 md:ml-16">
+          <div className="relative p-4">
+            <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-white" />
+            <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-white" />
+            <h1 className="text-3xl md:text-5xl font-display font-bold text-white px-4 py-6">
+              {heroTitle}
+            </h1>
+          </div>
+        </div>
+      </section>
+
+      {/* Content */}
+      <div className="py-12 px-4">
         <div className="max-w-5xl mx-auto">
           {/* Header */}
           <div className="text-center mb-10">
             <p className="text-primary font-semibold tracking-widest uppercase text-sm mb-2">
               Detection and Identification of Pills
             </p>
-            <h1 className="text-3xl md:text-4xl font-display font-bold">
-              {result ? "Result" : "Upload Pill Image"}
-            </h1>
+            <h2 className="text-3xl md:text-4xl font-display font-bold">
+              {result ? "Result" : "Upload Pills image"}
+            </h2>
           </div>
 
           {/* Upload Section (shown when no result) */}
           {!result && (
-            <Card className="max-w-2xl mx-auto glass-card">
-              <CardContent className="p-8">
-                <div
-                  className={`relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
-                    selectedImage ? "border-primary bg-primary/5" : "border-muted-foreground/30 hover:border-primary/50"
-                  }`}
+            <div className="max-w-2xl mx-auto text-center space-y-6">
+              {/* File input row */}
+              <div className="flex items-center justify-center gap-4">
+                <Button
+                  variant="outline"
                   onClick={() => fileInputRef.current?.click()}
+                  className="px-6"
                 >
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    onChange={handleImageSelect}
-                    className="hidden"
-                  />
-                  {selectedImage ? (
-                    <div className="space-y-4">
-                      <img src={selectedImage} alt="Selected pill" className="max-h-48 mx-auto rounded-lg shadow-md" />
-                      <p className="text-sm text-muted-foreground">Click to change image</p>
-                    </div>
+                  Browse...
+                </Button>
+                <span className="text-muted-foreground text-sm">
+                  {selectedImage ? "Image selected" : "No files selected."}
+                </span>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                />
+              </div>
+
+              {/* Image preview */}
+              {selectedImage && (
+                <div className="flex justify-center">
+                  <img src={selectedImage} alt="Selected pill" className="max-h-48 rounded-lg shadow-md" />
+                </div>
+              )}
+
+              {/* Submit button */}
+              <Button
+                onClick={handleSubmit}
+                disabled={!selectedImage}
+                className="bg-secondary hover:bg-secondary/90 text-secondary-foreground px-12 py-6"
+              >
+                Submit
+              </Button>
+
+              {/* Recognize button */}
+              <div>
+                <Button
+                  onClick={analyzePill}
+                  disabled={!isSubmitted || isAnalyzing}
+                  className="px-12 py-6"
+                  style={{ backgroundColor: "hsl(160 50% 70%)", color: "hsl(200 30% 15%)" }}
+                >
+                  {isAnalyzing ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Analyzing...</>
                   ) : (
-                    <div className="space-y-4">
-                      <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
-                        <Upload className="w-8 h-8 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-medium">Click to upload or take photo</p>
-                        <p className="text-sm text-muted-foreground">PNG, JPG up to 10MB</p>
-                      </div>
-                    </div>
+                    "Recognize"
                   )}
-                </div>
+                </Button>
+              </div>
 
-                <div className="mt-6 flex gap-3">
-                  <Button onClick={analyzePill} disabled={!selectedImage || isAnalyzing} className="flex-1 gradient-bg">
-                    {isAnalyzing ? (
-                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Analyzing...</>
-                    ) : (
-                      <><Pill className="w-4 h-4 mr-2" />Analyze Pill</>
-                    )}
-                  </Button>
-                  {selectedImage && (
-                    <Button variant="outline" onClick={resetAnalysis}>Reset</Button>
-                  )}
+              {error && (
+                <div className="flex items-center justify-center gap-3 p-4 rounded-lg bg-destructive/10 text-destructive">
+                  <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                  <p>{error}</p>
                 </div>
-
-                {error && (
-                  <div className="mt-4 flex items-center gap-3 p-4 rounded-lg bg-destructive/10 text-destructive">
-                    <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                    <p>{error}</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+              )}
+            </div>
           )}
 
           {/* Results Section */}
@@ -175,9 +223,7 @@ export default function Detection() {
                     <h3 className="text-xl font-display font-bold text-primary text-center">
                       {result.name}
                     </h3>
-                    <div className="mt-2">
-                      {getConfidenceBadge(result.confidence)}
-                    </div>
+                    <div className="mt-2">{getConfidenceBadge(result.confidence)}</div>
                   </CardContent>
                 </Card>
 
@@ -192,7 +238,6 @@ export default function Detection() {
                     <DetailRow label="Brand Name" value={result.brandName} />
                     <DetailRow label="Color" value={result.color} />
                     <DetailRow label="Shape" value={result.shape} />
-                    <DetailRow label="Imprint" value={result.imprint} />
                   </CardContent>
                 </Card>
               </div>
@@ -242,7 +287,7 @@ export default function Detection() {
                 </Card>
               )}
 
-              {/* Back / Reset button */}
+              {/* Back button */}
               <div className="text-center">
                 <Button variant="outline" onClick={resetAnalysis} className="px-8">
                   Analyze Another Pill
@@ -259,6 +304,26 @@ export default function Detection() {
           </div>
         </div>
       </div>
+
+      {/* Image Submitted Dialog */}
+      <AlertDialog open={showSubmittedDialog} onOpenChange={setShowSubmittedDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Camera className="w-5 h-5" />
+              Image Submitted
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Click the Recognize button to predict the result
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction className="bg-primary hover:bg-primary/90">
+              OK
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
