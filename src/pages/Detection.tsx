@@ -1,189 +1,319 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
+import { useState, useRef } from "react";
+import { Camera, Upload, Loader2, AlertCircle, Pill, Info, ShieldAlert } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, Pill, Filter, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { PillCard } from "@/components/pills/PillCard";
-import { PillDetailModal } from "@/components/pills/PillDetailModal";
 
-interface PillData {
-  id: string;
-  generic_name: string;
-  drug_class: string | null;
-  colour: string | null;
-  size: string | null;
-  shape: string | null;
-  dosage: string | null;
-  uses: string | null;
-  description: string | null;
-  warnings: string | null;
-  image_url: string | null;
-  created_at: string;
+interface PillResult {
+  name: string;
+  genericName: string;
+  brandName: string;
+  drugClass: string;
+  confidence: number;
+  description: string;
+  color: string;
+  shape: string;
+  imprint: string;
+  usage: string;
+  warnings: string[];
 }
 
-const shapes = ["All Shapes", "Round", "Oval", "Oblong", "Capsule", "Diamond", "Heart", "Hexagon", "Octagon", "Pentagon", "Rectangle", "Square", "Triangle", "Other"];
-const colours = ["All Colours", "White", "Off-White", "Yellow", "Orange", "Pink", "Red", "Purple", "Blue", "Green", "Brown", "Tan", "Gray", "Black", "Multi-colored"];
-
 export default function Detection() {
-  const navigate = useNavigate();
-  const [pills, setPills] = useState<PillData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [shapeFilter, setShapeFilter] = useState("All Shapes");
-  const [colourFilter, setColourFilter] = useState("All Colours");
-  const [selectedPill, setSelectedPill] = useState<PillData | null>(null);
-  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [result, setResult] = useState<PillResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
-  useEffect(() => {
-    fetchPills();
-  }, []);
+  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith("image/")) {
+        toast({
+          title: "Invalid file type",
+          description: "Please select an image file",
+          variant: "destructive",
+        });
+        return;
+      }
 
-  const fetchPills = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('pills')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Validate file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Please select an image under 10MB",
+          variant: "destructive",
+        });
+        return;
+      }
 
-      if (error) throw error;
-      setPills(data || []);
-    } catch (error) {
-      console.error('Error fetching pills:', error);
-    } finally {
-      setLoading(false);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setSelectedImage(e.target?.result as string);
+        setResult(null);
+        setError(null);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
-  const filteredPills = pills.filter(pill => {
-    const matchesSearch = pill.generic_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          pill.drug_class?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          pill.dosage?.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesShape = shapeFilter === "All Shapes" || pill.shape === shapeFilter;
-    const matchesColour = colourFilter === "All Colours" || pill.colour === colourFilter;
+  const analyzePill = async () => {
+    if (!selectedImage) return;
 
-    return matchesSearch && matchesShape && matchesColour;
-  });
+    setIsAnalyzing(true);
+    setError(null);
 
-  const handlePillClick = (pill: PillData) => {
-    setSelectedPill(pill);
-    setModalOpen(true);
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke("analyze-pill", {
+        body: { image: selectedImage },
+      });
+
+      if (fnError) throw fnError;
+
+      if (data?.success && data?.result) {
+        setResult(data.result);
+        toast({
+          title: "Analysis Complete",
+          description: `Identified: ${data.result.name}`,
+        });
+      } else {
+        throw new Error(data?.error || "Analysis failed");
+      }
+    } catch (err) {
+      console.error("Analysis error:", err);
+      setError(err instanceof Error ? err.message : "Failed to analyze pill");
+      toast({
+        title: "Analysis Failed",
+        description: "Please try again with a clearer image",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const resetAnalysis = () => {
+    setSelectedImage(null);
+    setResult(null);
+    setError(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const getConfidenceColor = (confidence: number) => {
+    if (confidence >= 0.8) return "text-green-500";
+    if (confidence >= 0.5) return "text-yellow-500";
+    return "text-red-500";
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-3xl font-bold gradient-text">Pill Database</h1>
-            <p className="text-muted-foreground">Search and identify pills from your database</p>
+    <div className="min-h-screen py-12">
+      <div className="container mx-auto px-4">
+        <div className="max-w-4xl mx-auto">
+          {/* Header */}
+          <div className="text-center mb-12">
+            <h1 className="text-3xl md:text-4xl font-display font-bold mb-4">
+              Pill <span className="gradient-text">Detection</span>
+            </h1>
+            <p className="text-lg text-muted-foreground">
+              Upload or capture a pill image for AI-powered identification
+            </p>
           </div>
-          <Button onClick={() => navigate("/train")} className="gradient-bg">
-            <Plus className="mr-2 h-4 w-4" />
-            Add New Pill
-          </Button>
+
+          <div className="grid md:grid-cols-2 gap-8">
+            {/* Upload Section */}
+            <Card className="glass-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Camera className="w-5 h-5 text-primary" />
+                  Upload Image
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div
+                  className={`relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
+                    selectedImage
+                      ? "border-primary bg-primary/5"
+                      : "border-muted-foreground/30 hover:border-primary/50"
+                  }`}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handleImageSelect}
+                    className="hidden"
+                  />
+
+                  {selectedImage ? (
+                    <div className="space-y-4">
+                      <img
+                        src={selectedImage}
+                        alt="Selected pill"
+                        className="max-h-48 mx-auto rounded-lg shadow-md"
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        Click to change image
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
+                        <Upload className="w-8 h-8 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium">
+                          Click to upload or take photo
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          PNG, JPG up to 10MB
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-6 flex gap-3">
+                  <Button
+                    onClick={analyzePill}
+                    disabled={!selectedImage || isAnalyzing}
+                    className="flex-1 gradient-bg"
+                  >
+                    {isAnalyzing ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Analyzing...
+                      </>
+                    ) : (
+                      <>
+                        <Pill className="w-4 h-4 mr-2" />
+                        Analyze Pill
+                      </>
+                    )}
+                  </Button>
+                  {selectedImage && (
+                    <Button variant="outline" onClick={resetAnalysis}>
+                      Reset
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Results Section */}
+            <Card className="glass-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Info className="w-5 h-5 text-primary" />
+                  Results
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {error ? (
+                  <div className="flex items-center gap-3 p-4 rounded-lg bg-destructive/10 text-destructive">
+                    <AlertCircle className="w-5 h-5" />
+                    <p>{error}</p>
+                  </div>
+                ) : result ? (
+                  <div className="space-y-4">
+                    {/* Main Info */}
+                    <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
+                      <h3 className="text-xl font-display font-bold">
+                        {result.name}
+                      </h3>
+                      <p className="text-muted-foreground">
+                        {result.genericName}
+                      </p>
+                      <div className="mt-2 flex items-center gap-2">
+                        <span className="text-sm">Confidence:</span>
+                        <span
+                          className={`font-bold ${getConfidenceColor(
+                            result.confidence
+                          )}`}
+                        >
+                          {(result.confidence * 100).toFixed(0)}%
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Details Grid */}
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div className="p-3 rounded-lg bg-muted">
+                        <p className="text-muted-foreground">Drug Class</p>
+                        <p className="font-medium">{result.drugClass}</p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-muted">
+                        <p className="text-muted-foreground">Brand</p>
+                        <p className="font-medium">{result.brandName}</p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-muted">
+                        <p className="text-muted-foreground">Color</p>
+                        <p className="font-medium">{result.color}</p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-muted">
+                        <p className="text-muted-foreground">Shape</p>
+                        <p className="font-medium">{result.shape}</p>
+                      </div>
+                    </div>
+
+                    {/* Description */}
+                    <div className="p-3 rounded-lg bg-muted">
+                      <p className="text-muted-foreground text-sm mb-1">
+                        Description
+                      </p>
+                      <p className="text-sm">{result.description}</p>
+                    </div>
+
+                    {/* Usage */}
+                    <div className="p-3 rounded-lg bg-muted">
+                      <p className="text-muted-foreground text-sm mb-1">
+                        Usage
+                      </p>
+                      <p className="text-sm">{result.usage}</p>
+                    </div>
+
+                    {/* Warnings */}
+                    {result.warnings && result.warnings.length > 0 && (
+                      <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+                        <div className="flex items-center gap-2 mb-2">
+                          <ShieldAlert className="w-4 h-4 text-destructive" />
+                          <p className="font-medium text-destructive">
+                            Warnings
+                          </p>
+                        </div>
+                        <ul className="text-sm space-y-1">
+                          {result.warnings.map((warning, index) => (
+                            <li key={index}>• {warning}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Pill className="w-12 h-12 mx-auto mb-4 opacity-30" />
+                    <p>Upload an image to see results</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Disclaimer */}
+          <div className="mt-8 p-4 rounded-lg bg-muted/50 text-center text-sm text-muted-foreground">
+            <p>
+              <strong>Disclaimer:</strong> This tool is for informational
+              purposes only. Always consult a healthcare professional or
+              pharmacist for accurate medication identification and advice.
+            </p>
+          </div>
         </div>
-
-        {/* Search and Filters */}
-        <Card className="medical-card mb-8">
-          <CardContent className="p-4">
-            <div className="flex flex-col md:flex-row gap-4">
-              {/* Search */}
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by name, class, or dosage..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-
-              {/* Filters */}
-              <div className="flex gap-2">
-                <Select value={shapeFilter} onValueChange={setShapeFilter}>
-                  <SelectTrigger className="w-[140px]">
-                    <Filter className="h-4 w-4 mr-2" />
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {shapes.map((s) => (
-                      <SelectItem key={s} value={s}>{s}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select value={colourFilter} onValueChange={setColourFilter}>
-                  <SelectTrigger className="w-[140px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {colours.map((c) => (
-                      <SelectItem key={c} value={c}>{c}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Pills Grid */}
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        ) : filteredPills.length === 0 ? (
-          <div className="text-center py-20">
-            <Pill className="h-16 w-16 mx-auto text-muted-foreground/30 mb-4" />
-            <h3 className="text-xl font-semibold mb-2">
-              {pills.length === 0 ? "No pills in database" : "No pills match your search"}
-            </h3>
-            <p className="text-muted-foreground mb-6">
-              {pills.length === 0 
-                ? "Start by adding your first pill to the database" 
-                : "Try adjusting your search or filters"}
-            </p>
-            {pills.length === 0 && (
-              <Button onClick={() => navigate("/train")} className="gradient-bg">
-                <Plus className="mr-2 h-4 w-4" />
-                Add First Pill
-              </Button>
-            )}
-          </div>
-        ) : (
-          <>
-            <p className="text-sm text-muted-foreground mb-4">
-              Showing {filteredPills.length} of {pills.length} pills
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {filteredPills.map((pill) => (
-                <PillCard 
-                  key={pill.id} 
-                  pill={pill} 
-                  onClick={() => handlePillClick(pill)} 
-                />
-              ))}
-            </div>
-          </>
-        )}
-
-        {/* Detail Modal */}
-        <PillDetailModal 
-          pill={selectedPill} 
-          open={modalOpen} 
-          onOpenChange={setModalOpen} 
-        />
-
-        {/* Footer */}
-        <footer className="mt-16 pt-8 border-t border-border text-center text-muted-foreground text-sm">
-          © 2026 PillDetect. Professional pill identification database.
-        </footer>
       </div>
     </div>
   );
